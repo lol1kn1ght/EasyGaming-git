@@ -1,0 +1,32 @@
+const { Command_template } = require("../../config/templates");
+const Discord = require("discord.js");
+
+class Command extends Command_template {
+  constructor(args, interaction) {
+    super(interaction);
+    Object.assign(this, args);
+
+    this.options = {
+      permissions: [],
+      custom_perms: ["OWNER"],
+      allowed_roles: [],
+      slash: {
+        name: "test",
+        description: "test",
+      },
+    };
+  }
+
+  async execute() {
+    let invite_logs = [];
+
+    let logs = await this.interaction.guild.fetchAuditLogs({
+      type: 42,
+      limit: 10,
+    });
+
+    console.log(logs);
+  }
+}
+
+module.exports = Command;

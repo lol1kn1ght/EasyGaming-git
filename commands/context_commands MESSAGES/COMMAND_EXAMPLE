@@ -1,0 +1,36 @@
+const {Command_template} = require("../../config/templates");
+const Discord = require("discord.js");
+
+class Command extends Command_template {
+  constructor(args, interaction) {
+    super(interaction);
+    Object.assign(this, args);
+
+    this.options = {
+      permissions: [],
+      custom_perms: [],
+      allowed_roles: [],
+      slash: {
+        name: "COMMAND_NAME",
+        type: 3
+      }
+    };
+  }
+
+  async execute() {
+    try {
+    } catch (error) {
+      console.log(
+        `Произошла ошибка при исполнении контекст-сообщение команды ${this.interaction.commandName}`
+      );
+      let errors_channel = Bot.bot.channels.cache.get(
+        f.config.errorsChannel
+      );
+      errors_channel.send(
+        `Ошибка при исполнении контекст-сообщение команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
+      );
+    }
+  }
+}
+
+module.exports = Command;

@@ -1,0 +1,22 @@
+{
+  "dependencies": {
+    "@discordjs/builders": "^0.6.0",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "canvas": "^2.8.0",
+    "discord-api-types": "^0.23.1",
+    "discord.js": "^13.1.0",
+    "events": "^3.3.0",
+    "fs": "^0.0.1-security",
+    "mongodb": "^4.1.1",
+    "parse-duration": "^1.0.1"
+  },
+  "name": "moderation_new",
+  "version": "1.0.0",
+  "main": "Main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "loli_knight",
+  "license": "ISC",
+  "description": ""
+}

@@ -1,0 +1,38 @@
+{
+  "owner": "348038599083556864",
+  "colorEmbed": "#EAECEA",
+  "colorEmbedFalse": "#B61B1B",
+  "errorsChannel": "432890572269813760",
+  "slash_guild": "314105293682376707",
+  "reports_channel": "431408527899099149",
+  "muted_role": "322027321169018882",
+  "user_reports_channel": "869194593265143808",
+  "best_player": "334041473160839169",
+  "half_of_ban": "476378770924896256",
+  "currency": "<:Gold:474300456349335562>",
+  "moderator_roles": ["465581489535582208", "468374000947560459"],
+  "auth_channel": "908288792882982912",
+  "language": "ru",
+  "roles": {
+    "flowers": "314111617057030144",
+    "adult": "370296621633896449",
+    "cheats": "476378962684149790"
+  },
+  "punishments": {
+    "bans": [0, 1],
+    "mutes": [2],
+    "warns": [3]
+  },
+  "anti_flood": {
+    "max": 15
+  },
+  "mongo": {
+    "auth": true,
+    "pass": "gta0nlineruezp4ssw0rd%24%26%23",
+    "ip": "localhost",
+    "ip_": "89.208.81.104",
+    "user": "gtaEZ",
+    "db": "gtaEZ",
+    "port": 25567
+  }
+}
