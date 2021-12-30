@@ -1,29 +1,19 @@
 const Discord = require("discord.js");
-const {
-  Intents
-} = require("discord.js");
-const {
-  REST
-} = require("@discordjs/rest");
-const {
-  Routes
-} = require("discord-api-types/v9");
+const {Intents} = require("discord.js");
+const {REST} = require("@discordjs/rest");
+const {Routes} = require("discord-api-types/v9");
 const config = require("./config/config.json");
-const {
-  token
-} = require("./config/token.json");
-const {
-  MongoClient
-} = require("mongodb");
-const {
-  promisify
-} = require("util");
+const {token} = require("./config/token.json");
+const {MongoClient} = require("mongodb");
+const {promisify} = require("util");
+const mongo_config = require("./config/mongo.json");
+
 const fs = require("fs");
 let f = require("./config/modules");
 
 const connect_mongo = promisify(MongoClient.connect);
 const Client = new Discord.Client({
-  intents: [Object.values(Intents.FLAGS)],
+  intents: [Object.values(Intents.FLAGS)]
 });
 
 class Bot_builder {
@@ -51,30 +41,19 @@ class Bot_builder {
 
     await this._load_slash();
     timer.stop();
-
-
-
   }
 
   async reload_modules() {
-    console.log(f.test);
     let cache = require.cache[require.resolve("./config/modules")];
     if (cache) delete require.cache[require.resolve("./config/modules")];
 
     f = require("./config/modules");
-    console.log(f.test);
   }
 
   async _load_mongodb() {
     try {
-      if (this.config.mongo.auth) {
-        let {
-          user,
-          pass,
-          ip,
-          port,
-          db
-        } = this.config.mongo;
+      if (mongo_config.auth) {
+        let {user, pass, ip, port, db} = mongo_config;
 
         this.mongo = await connect_mongo(
           `mongodb://${user}:${pass}@${ip}:${port}/${db}`
@@ -98,7 +77,7 @@ class Bot_builder {
     let commands = [];
 
     let folders = commands_dir.filter(
-      (folder_name) => !folder_name.split(".")[1]
+      folder_name => !folder_name.split(".")[1]
     );
 
     for (let folder_name of folders) {
@@ -109,8 +88,8 @@ class Bot_builder {
       let name = folder_name.split(" ")[0];
 
       let files = commands_files
-        .filter((file_name) => file_name.endsWith(".js"))
-        .map((file_name) => {
+        .filter(file_name => file_name.endsWith(".js"))
+        .map(file_name => {
           return {
             command_folder: folder_name,
             command_name: file_name
@@ -161,7 +140,7 @@ class Bot_builder {
     let readdir = promisify(fs.readdir);
 
     let events_dir = await readdir("./events");
-    let events = events_dir.filter((event_file) => event_file.endsWith(".js"));
+    let events = events_dir.filter(event_file => event_file.endsWith(".js"));
 
     let step = this._percent(events.length, "Евенты");
 
@@ -181,7 +160,7 @@ class Bot_builder {
           config: this.config,
           f: f,
           mongo: this.mongo,
-          db: this.mongo.db("gtaEZ"),
+          db: this.mongo.db("gtaEZ")
         };
 
         this.bot.on(event_name, event.bind(null, args));
@@ -204,8 +183,9 @@ class Bot_builder {
     try {
       console.log("Начал загрузку /-команд.");
       await rest.put(
-        Routes.applicationGuildCommands(this.bot.user.id, config.slash_guild), {
-          body: this.slash,
+        Routes.applicationGuildCommands(this.bot.user.id, config.slash_guild),
+        {
+          body: this.slash
         }
       );
 
@@ -228,7 +208,7 @@ class Bot_builder {
         // clearInterval(this._timer_interval);
 
         process.stdout.write("\rЗагрузка прошла успешно!\n");
-      },
+      }
     };
   }
 
@@ -236,22 +216,22 @@ class Bot_builder {
     let current_step = 1;
 
     function next_step() {
-      let current_percent = (current_step++/ amount) * 100;
+      let current_percent = (current_step++ / amount) * 100;
 
-        process.stdout.write(
-          `\r  Загрузка модуля "${module_name}" - ${Math.floor(current_percent)}%`
-        );
-        if (current_percent >= 100)
-          console.log(`\n  Успешно закончена загрузка модуля "${module_name}"`);
-      }
-
-      return next_step;
+      process.stdout.write(
+        `\r  Загрузка модуля "${module_name}" - ${Math.floor(current_percent)}%`
+      );
+      if (current_percent >= 100)
+        console.log(`\n  Успешно закончена загрузка модуля "${module_name}"`);
     }
 
-    async _login() {
-      await this.bot.login(token);
-    }
+    return next_step;
   }
 
-  global.Bot = new Bot_builder();
-  global.f = f;
+  async _login() {
+    await this.bot.login(token);
+  }
+}
+
+global.Bot = new Bot_builder();
+global.f = f;

@@ -25,14 +25,5 @@
   },
   "anti_flood": {
     "max": 15
-  },
-  "mongo": {
-    "auth": true,
-    "pass": "gta0nlineruezp4ssw0rd%24%26%23",
-    "ip": "localhost",
-    "ip_": "89.208.81.104",
-    "user": "gtaEZ",
-    "db": "gtaEZ",
-    "port": 25567
   }
 }

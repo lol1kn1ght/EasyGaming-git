@@ -1,2 +1,5 @@
 /node_modules
 /data/stat_logs
+
+/config/token.json
+/config/mongo.json
