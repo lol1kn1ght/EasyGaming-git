@@ -1,4 +1,4 @@
-module.exports = function handle_error(place_name, error, options = {}) {
+module.exports = function handle_error(error, place_name, options = {}) {
   let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
   let err_text = `⚠️ Возникла ошибка в \`${place_name}\`: \`${error}\``;
 
