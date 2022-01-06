@@ -309,7 +309,7 @@ class Command extends Command_template {
 
       if (!this.default_buttons()[0])
         return this.msgFalseH(
-          `Участник ${member.user.tag} не имеет наказаний.`
+          `Участник ${this.member.user.tag} не имеет наказаний.`
         );
 
       let components_row = new Discord.MessageActionRow().addComponents(
@@ -383,9 +383,18 @@ class Command extends Command_template {
 
           switch (method) {
             case "delete-warn":
-              this.warns.splice(id, 1);
+              let removed_warn = this.warns.splice(id, 1);
 
               this.update_data({warns: this.warns});
+
+              f.warn_emitter.emit("warn_remove", {
+                user_id: this.member?.id || this.member_id,
+                mongo: this.db,
+                data: {
+                  by: this.interaction.user.id,
+                  warn_data: removed_warn
+                }
+              });
 
               if (this.mutes.length === 0 && this.warns.length === 0) {
                 select.update({
@@ -405,7 +414,16 @@ class Command extends Command_template {
               await this.toggle_warns(select);
               break;
             case "delete-mute":
-              this.mutes.splice(id, 1);
+              let removed_mute = this.mutes.splice(id, 1);
+
+              f.warn_emitter.emit("mute_remove", {
+                user_id: this.member?.id || this.member_id,
+                mongo: this.db,
+                data: {
+                  by: this.interaction.user.id,
+                  warn_data: removed_mute
+                }
+              });
 
               this.update_data({mutes: this.mutes});
 
