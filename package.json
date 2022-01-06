@@ -12,9 +12,10 @@
   },
   "name": "moderation_new",
   "version": "1.0.0",
-  "main": "Main.js",
+  "main": "EasyGaming-git.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon EasyGaming-git.js"
   },
   "author": "loli_knight",
   "license": "ISC",
