@@ -309,7 +309,7 @@ class Command extends Command_template {
 
       if (!this.default_buttons()[0])
         return this.msgFalseH(
-          `Участник ${member.user.tag} не имеет наказаний.`
+          `Участник ${this.member.user.tag} не имеет наказаний.`
         );
 
       let components_row = new Discord.MessageActionRow().addComponents(
