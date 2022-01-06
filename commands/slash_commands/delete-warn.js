@@ -123,8 +123,8 @@ class Command extends Command_template {
         login: this.member.id
       });
 
-      this.warns = user_data?.warns;
-      this.mutes = user_data?.mutes;
+      this.warns = user_data?.warns || [];
+      this.mutes = user_data?.mutes || [];
 
       this.user_data = user_data;
 
