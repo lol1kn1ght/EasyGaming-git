@@ -392,7 +392,7 @@ class Command extends Command_template {
                 mongo: this.db,
                 data: {
                   by: this.interaction.user.id,
-                  warn_data: removed_warn
+                  warn_data: removed_warn[0]
                 }
               });
 
@@ -421,7 +421,7 @@ class Command extends Command_template {
                 mongo: this.db,
                 data: {
                   by: this.interaction.user.id,
-                  warn_data: removed_mute
+                  mute_data: removed_mute[0]
                 }
               });
 
