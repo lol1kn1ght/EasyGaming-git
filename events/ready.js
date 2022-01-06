@@ -9,41 +9,47 @@ module.exports = function(args) {
 
       this.bot.channels.cache.get("432890572269813760").send("Запустился");
 
-      const fs = require('fs');
-      var guild = this.bot.guilds.cache.get('314105293682376707');
-
-      // console.log(guild.members.cache.get('298792906137796609').presence);
-      // console.log(guild.members.cache.filter(member => member.presence && member.presence.clientStatus != null).size);
-      //console.log(guild.members.cache.filter(member => member.voice.channel).size);
+      const fs = require("fs");
+      var guild = this.bot.guilds.cache.get("314105293682376707");
 
       setInterval(function() {
-        var online = guild.members.cache.filter(member => member.presence && member.presence.clientStatus != null).size
-        var voice = guild.members.cache.filter(member => member.voice.channel).size
-        var date = new Date;
-        var daten = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`
-        var text = `\n[${date.getHours() + 3}:${date.getMinutes()}:${date.getSeconds()}] ${guild.memberCount}:${online}:${voice}`
+        var online = guild.members.cache.filter(
+          member => member.presence && member.presence.clientStatus != null
+        ).size;
+        var voice = guild.members.cache.filter(member => member.voice.channel)
+          .size;
+        var date = new Date();
+        var daten = `${date.getDate()}.${date.getMonth() +
+          1}.${date.getFullYear()}`;
+        var text = `\n[${date.getHours() +
+          3}:${date.getMinutes()}:${date.getSeconds()}] ${
+          guild.memberCount
+        }:${online}:${voice}`;
         //console.log(text);
         fs.access(`./data/stat_logs/${daten}.txt`, function(error) {
           if (error) {
-            fs.appendFile(`./data/stat_logs/${daten}.txt`, `[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}] Начато логирование статистики.\n[Время] Всего:Онлайн:Подключено` + text, function(error) {
-              if (error) console.log(error);
-              //ok()
-            });
+            fs.appendFile(
+              `./data/stat_logs/${daten}.txt`,
+              `[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}] Начато логирование статистики.\n[Время] Всего:Онлайн:Подключено` +
+                text,
+              function(error) {
+                if (error) console.log(error);
+              }
+            );
           } else {
-            fs.appendFile(`./data/stat_logs/${daten}.txt`, text, function(error) {
+            fs.appendFile(`./data/stat_logs/${daten}.txt`, text, function(
+              error
+            ) {
               if (error) console.log(error);
-              //ok()
             });
           }
         });
       }, 15 * 60 * 1000);
 
-
-
       let muted_users = await this.db
         .collection("users")
         .find({
-          "muted.is": true,
+          "muted.is": true
         })
         .toArray();
 
