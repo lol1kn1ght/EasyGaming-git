@@ -433,6 +433,10 @@ class Command extends Command_template {
         f.handle_error(err, `/-команда ${this.options.name}`);
       }
     });
+
+    this.collector.on("end", () => {
+      this.menu_message.delete();
+    });
   }
 
   change_prev_page(button) {
