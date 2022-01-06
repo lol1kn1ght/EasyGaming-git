@@ -1,4 +1,4 @@
-module.exports = function (args, message) {
+module.exports = function(args, message) {
   class Event {
     constructor(args) {
       Object.assign(this, args);
@@ -7,6 +7,8 @@ module.exports = function (args, message) {
     async execute() {
       if (message.author.bot || message.channel.id === "897358478866251826")
         return;
+
+      if (message.channel.title === "lester_minigame") return;
 
       let user = f.flood[message.author.id] || {};
 
@@ -27,9 +29,9 @@ module.exports = function (args, message) {
             type: "USER",
             reason: "Флуд сообщениями.",
             channel: message.channel,
-            targetId: message.author.id,
+            targetId: message.author.id
           },
-          mongo: this.mongo,
+          mongo: this.mongo
         };
 
         f.warn_emitter.emit("report", report_data);
@@ -38,9 +40,9 @@ module.exports = function (args, message) {
           time: f.parse_duration("1h"),
           reason: "Флуд сообщениями",
           by: Bot.bot.user.id,
-          date: new Date().getTime(),
+          date: new Date().getTime()
         };
-        user_profile.mute({ mute_data: mute });
+        user_profile.mute({mute_data: mute});
 
         user.amount = 0;
         f.flood[message.author.id] = user;
