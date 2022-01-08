@@ -1,5 +1,5 @@
-node_modules
-data/stat_logs
+/node_modules
+/data/stat_logs
 token.json
 mongo.json
 config.json

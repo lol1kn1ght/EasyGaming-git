@@ -8,7 +8,7 @@ module.exports = function(args, message) {
       if (message.author.bot || message.channel.id === "897358478866251826")
         return;
 
-      if (message.channel.title === "lester_minigame") return;
+      if (message.channel.topic === "lester_minigame") return;
 
       let user = f.flood[message.author.id] || {};
 
