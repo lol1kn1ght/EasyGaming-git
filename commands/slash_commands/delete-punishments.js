@@ -50,7 +50,7 @@ class Command extends Command_template {
       custom_perms: [],
       allowed_roles: ["468374000947560459", "596307104802013208"],
       slash: {
-        name: "delete-warn",
+        name: "delete-punishment",
         description:
           "Снять какому-либо участнику предупреждение. [Смотритель+]",
         options: [
