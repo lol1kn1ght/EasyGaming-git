@@ -3,7 +3,7 @@ module.exports = function handle_error(error, place_name, options = {}) {
   let err_text = `⚠️ Возникла ошибка в \`${place_name}\`: \`${error}\``;
 
   if (options.emitt_data)
-    err_text += `\n\n Параметры запроса: \`${options.emitt_data}\``;
+    err_text += `\n\n Параметры запроса: \`${JSON.stringify(options.emitt_data)}\``;
 
   if (!errors_channel) {
     let owner = Bot.bot.users.cache.get(f.config.owner);
