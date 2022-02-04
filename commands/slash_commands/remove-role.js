@@ -103,28 +103,22 @@ class Command extends Command_template {
     let role_type = role_vals[1];
 
     if (role_type === "TIMED") {
-      f.warn_emitter.emit("time_role_remove", {
+      f.warn_emitter.time_role_remove({
         user_id: member_id,
-        user: member,
-        guild: this.interaction.guild,
-        data: {
+        time_roles_data: {
           id: [roles[role_tag]],
           by: this.interaction.member.id,
         },
-        mongo: this.db,
       });
     }
 
     if (role_type === "DEF") {
-      f.warn_emitter.emit("role_remove", {
+      f.warn_emitter.role_remove({
         user_id: member_id,
-        user: member,
-        guild: this.interaction.guild,
-        data: {
+        role_remove_data: {
           id: [roles[role_tag]],
           by: this.interaction.member.id,
         },
-        mongo: this.db,
       });
     }
 

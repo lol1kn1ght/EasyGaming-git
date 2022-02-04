@@ -90,13 +90,20 @@ class Command extends Command_template {
         date: new Date().getTime(),
       };
 
-      f.warn_emitter.emit("kick", {
-        guild: this.interaction.guild,
+      let result = await f.warn_emitter.kick({
         user_id: member?.id || member_id,
-        user: member,
-        mongo: this.db,
-        data: kick,
+        kick_data: kick,
       });
+
+      if (result === null)
+        return this.msgFalseH(
+          `У меня недостаточно прав для действия или указанного участника нет на сервере.`
+        );
+
+      if (!result)
+        return this.msgFalseH(
+          "При выполнении команды возникла ошибка. Обратитесь к loli_knight"
+        );
       this.msgH(
         `Успешно выгнали участника \`${member?.user?.tag || member_id}\`.`
       );

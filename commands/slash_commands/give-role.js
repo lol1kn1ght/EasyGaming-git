@@ -98,15 +98,12 @@ class Command extends Command_template {
     if (member?.user.bot)
       return this.msgFalseH("Вы указали неверного участника для выдачи роли.");
 
-    f.warn_emitter.emit("role", {
+    f.warn_emitter.role({
       user_id: member_id,
-      user: member,
-      data: {
+      role_data: {
         id: [times[role_tag]],
         by: this.interaction.member.id,
       },
-      guild: this.interaction.guild,
-      mongo: this.db,
     });
 
     this.msgH(

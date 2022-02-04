@@ -56,13 +56,12 @@ module.exports = function (args) {
 
         // member.roles.remove(roles);
 
-        f.warn_emitter.emit("time_role_remove", {
+        f.warn_emitter.time_role_remove({
           user_id: member.id,
-          data: {
+          time_roles_data: {
             id: roles,
             by: Bot.bot.user.id,
           },
-          mongo: db,
         });
         current_user++;
         next_user();

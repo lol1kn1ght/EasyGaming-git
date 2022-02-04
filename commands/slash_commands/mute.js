@@ -107,18 +107,18 @@ class Command extends Command_template {
           "Вы не указали участника для дисциплинарного наказания."
         );
 
-      if (member.user.bot || member.user.id === this.interaction.member.id)
-        return this.msgFalseH(
-          "Вы указали неверного участника для выдачи дисциплинарного наказания."
-        );
-
-      if (
-        member.roles.highest.position >=
-        this.interaction.member.roles.highest.position
-      )
-        return this.msgFalseH(
-          "Вы не можете выдавать дисциплинарные наказания этому участнику."
-        );
+      // if (member.user.bot || member.user.id === this.interaction.member.id)
+      //   return this.msgFalseH(
+      //     "Вы указали неверного участника для выдачи дисциплинарного наказания."
+      //   );
+      //
+      // if (
+      //   member.roles.highest.position >=
+      //   this.interaction.member.roles.highest.position
+      // )
+      //   return this.msgFalseH(
+      //     "Вы не можете выдавать дисциплинарные наказания этому участнику."
+      //   );
 
       let profile = new f.Profile(this.db, member);
 
@@ -139,7 +139,12 @@ class Command extends Command_template {
         date: new Date().getTime(),
       };
 
-      await profile.mute({ mute_data: mute });
+      let result = await profile.mute({ mute_data: mute });
+
+      if (!result)
+        return this.msgFalse(
+          "Произошла ошибка при выполнении команды. Обратитесь к loli_knight"
+        );
 
       await this.msg(
         `Успешно выдано дисциплинарное наказание участнику \`${
@@ -171,16 +176,17 @@ class Command extends Command_template {
                 : `Пользователь имеет ${ban_limits[1]} и более блокировок.`,
             by: await_ask.member.id,
             date: new Date().getTime(),
-            member: member,
           };
 
-          f.warn_emitter.emit("ban", {
+          let ban_result = await f.warn_emitter.ban({
             user_id: member_id,
-            user: member,
-            mongo: this.db,
-            data: ban,
-            guild: this.interaction.guild,
+            ban_data: ban,
           });
+
+          if (!ban_result)
+            return this.msgFalseH(
+              "При попытке забанить пользователя произошла ошибка. Обратитесь в loli_knight"
+            );
           this.msgH(
             `Выдана блокировка участнику \`${member.user.tag}\` на \`${f.time(
               time

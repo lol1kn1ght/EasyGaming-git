@@ -1,207 +1,211 @@
 const Emitter = require("events");
-const warn_emitter = new Emitter();
 const Discord = require("discord.js");
-const {time} = require("@discordjs/builders");
-const {resolve} = require("path/posix");
+const { time } = require("@discordjs/builders");
 
-function check_args(args = {}) {
-  return args.user_id && args.data && args.mongo;
-}
+/** Обработчик наказаний */
+class Warn_emitter {
+  constructor(mongo) {
+    if (!mongo) throw new Error("База данных не передана.");
 
-function update_data(db, data, user_id) {
-  if (data.login) {
-    db.updateOne(
-      {
-        login: data.login
-      },
-      {
-        $set: data
-      }
-    );
+    /**
+     * Стандартные слушатели событий для старых версий
+     */
+
+    this._functions_list = {
+      warn: this.warn,
+      mute: this.mute,
+    };
+
+    /**
+     * Объект со слушателями евентов
+     * @type Object
+     */
+
+    this._events_emitters = { ...this._functions_list };
+
+    /**
+     * Сервер
+     */
+    this.guild = Bot.bot.guilds.cache.get(f.config.slash_guild);
+
+    /**
+     * База данных
+     */
+
+    this.db = mongo.db("gtaEZ");
+
+    /**
+     *  Бесконечная ссылка на сервер
+     * @type {string}
+     */
+    this._link = "https://discord.gg/QtwrAaJ";
+
+    /**
+     * Ссылка на сервер для забаненых
+     * @type {string}
+     */
+    this._banned_link = "https://discord.gg/tnUzfgd3vU";
   }
 
-  if (!data.login) {
-    if (!user_id) throw new Error("Айди пользователя не указан.");
-    db.insertOne({login: user_id, ...data});
-  }
-}
+  on(event_name, callback_function) {
+    if (!event_name) throw new Error("Не указано название эвента.");
+    if (typeof event_name != "string")
+      throw new Error("Название эвента должно быть строкой.");
+    if (!callback_function || typeof callback_function != "function")
+      throw new Error("Не указана или неправильно указана колл-бек функция.");
 
-module.exports = () => {
-  warn_emitter.on("warn", async args => {
+    if (this._events_emitters[event_name]) {
+      this._events_emitters[event_name].push(callback_function);
+    } else {
+      this._events_emitters[event_name] = [callback_function];
+    }
+  }
+
+  emit(...args) {
     try {
-      if (!check_args(args)) throw new Error("Один из аргументов не указан.");
+      let event_name = args[0];
 
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
-        });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
+      if (!event_name || typeof event_name != "string")
+        throw new Error(
+          "Название эвента для вызова не указано или указано неправильно."
+        );
 
-      let db = args.mongo.collection("users");
+      if (this._events_emitters[event_name]) {
+        let emitter_functions = this._events_emitters[event_name];
 
-      let user_data =
-        (await db.findOne({
-          login: args.user_id
-        })) || {};
+        args.splice(0, 1);
 
-      let warns = user_data.warns || [];
+        for (let emitter_function of emitter_functions) {
+          try {
+            emitter_function(...args);
+          } catch (err) {
+            f.handle_error(
+              err,
+              `[Warns_emitter] emit in ListenerEmit: ${event_name}`
+            );
+          }
+        }
+      }
+    } catch (err) {
+      f.handle_error(err, "[Warns_emitter] method emit");
+    }
+  }
 
-      warns.push(args.data);
+  async warn({ user_id, warn_data }) {
+    try {
+      if (!warn_data) throw new Error("Не переданы данные о варне.");
+      if (!user_id) throw new Error("Айди участника для варна не передан.");
 
-      user_data.warns = warns;
+      let member_profile = new f.Profile(this.db, user_id);
 
-      update_data(db, user_data, args.user_id);
+      let member_data = await member_profile.fetch();
 
-      if (!reports_channel) return;
+      let warns = member_data.warns || [];
 
-      let member = await reports_channel.guild.members.fetch(args.user_id);
-      let moderator = await reports_channel.guild.members.fetch(args.data.by);
+      if (!warn_data.by || !warn_data.reason || !warn_data.date)
+        throw new Error("Информация о варне неполная.");
 
-      if (!moderator) moderator = Bot.bot;
+      warns.push(warn_data);
 
-      let warn_embed = new Discord.MessageEmbed()
+      let member = await this._get_member(user_id);
+      let moderator = (await this._get_member(warn_data.by)) || Bot.bot;
+
+      if (member) {
+        member.send(
+          `:warning: Вам было выдано предупреждение на сервере \`${this.guild.name}\`.\n\n:pencil: Причина: \`${warn_data.reason}\``
+        );
+      }
+
+      member_profile.update_data({
+        warns: warns,
+      });
+
+      let logs_embed = new Discord.MessageEmbed()
         .setDescription(":warning: Выдано предупреждение")
         .setColor("#ffff00")
-        .setThumbnail(member.user.avatarURL({dynamic: true}))
+        .setThumbnail(member.user.avatarURL({ dynamic: true }))
         .setTimestamp()
         .addField(
           ":small_blue_diamond: Пользователю",
-          `${member || ""} ${member.user?.tag || "Пользователь#0000"} ID: ${
-            args.user_id
-          }`
+          `${member || ""} ${
+            member.user?.tag || "Пользователь#0000"
+          } ID: ${user_id}`
         )
         .addField(
           ":tools: Модератором",
           `${moderator} ${moderator.user.tag} ID: ${member.id}`
         )
-        .addField(":pencil: Причина", args.data.reason, true);
-      reports_channel.send({embeds: [warn_embed]});
+        .addField(":pencil: Причина", warn_data.reason, true);
 
-      if (member)
-        member
-          .send(
-            `:warning: Вам было выдано предупреждение на сервере **${reports_channel.guild.name}**\nПо причине: ${args.data.reason}`
-          )
-          .catch(e => {});
+      this._send_logs(logs_embed);
+
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER warn", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method warn", {
+        emit_data: warn_data,
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("mute", async args => {
+  async mute({ user_id, mute_data }) {
     try {
-      if (!check_args(args)) throw new Error("Один из аргументов не передан.");
+      if (!user_id) throw new Error("Не указан айди участника для варна.");
+      if (!mute_data) throw new Error("Не укзана информация о мьюте.");
 
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
-        });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
+      if (!mute_data.by || !mute_data.reason || !mute_data.time)
+        throw new Error("Информация о мьюте не полная.");
 
-      let muted_role_id = f.config.muted_role;
-      let muted_role = await reports_channel.guild.roles
-        .fetch(muted_role_id)
-        .catch(e => {
-          throw new Error("Роль для мьюта не найдена.");
-        });
+      let mute_role_id = f.config.muted_role;
+      if (!mute_role_id) throw new Error("Роль для мьюта не указана.");
 
-      if (!muted_role) throw new Error("Роль для мьюта не найдена.");
+      let mute_role = this.guild.roles.cache.get(mute_role_id);
+      if (!mute_role) throw new Error("Роль мьюта не найдена.");
 
-      let member = await reports_channel.guild.members.fetch(args.user_id);
-      let moderator = await reports_channel.guild.members.fetch(args.data.by);
-      let bot_member = await reports_channel.guild.members.fetch(
-        Bot.bot.user.id
-      );
+      let member = await this._get_member(user_id);
+      let moderator = await this._get_member(mute_data.by);
 
-      if (!moderator) moderator = Bot.bot;
+      if (!member) throw new Error("Участник для мьюта не найден.");
 
-      let remove_roles = member.roles.cache
+      let member_profile = new f.Profile(this.db, user_id);
+      let member_data = await member_profile.fetch();
+
+      let mutes = member_data.mutes || [];
+
+      let bot_member = await this._get_member(Bot.bot.user.id);
+
+      let roles_to_remove = member.roles.cache
         .filter(
-          role =>
+          (role) =>
             role.position < bot_member.roles?.highest?.position &&
             !role.tags?.premiumSubscriberRole &&
             !role.botRole &&
-            role.id !== reports_channel.guild.id &&
-            role.id !== muted_role_id
+            role.id !== this.guild.id &&
+            role.id !== mute_role_id
         )
-        .map(role => role.id);
+        .map((role) => role.id);
 
-      let db = args.mongo.collection("users");
+      await member.roles.remove(roles_to_remove);
 
-      let user_data =
-        (await db.findOne({
-          login: args.user_id
-        })) || {};
+      setTimeout(() => member.roles.add(mute_role_id), 1000);
 
-      // if (user_data?.muted?.is) throw new Error("Пользователь уже замьючен.");
+      let till = new Date(new Date().getTime() + mute_data.time);
 
-      let till = new Date(new Date().getTime() + args.data.time);
+      f.muted_members[member.id] = { till };
 
-      let mutes = user_data.mutes || [];
+      mutes.push(mute_data);
 
-      mutes.push(args.data);
-
-      user_data.muted = {
-        is: true,
-        reason: args.data.reason,
+      let muted = {
+        reason: mute_data.reason,
         till: till.getTime(),
-        roles: remove_roles
+        is: true,
+        roles: roles_to_remove,
       };
+      member_profile.update_data({ mutes, muted });
 
-      user_data.mutes = mutes;
-      await update_data(db, user_data, args.user_id);
-
-      member
-        .send(
-          `:mute: Вам было выдано дисциплинарное наказание на сервере **${
-            reports_channel.guild.name
-          }**. Истечет: ${time(
-            till,
-            "R"
-          )} (**\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`**) .\nПо причине: ${
-            args.data.reason
-          }`
-        )
-        .catch(e => {});
-
-      await member.roles
-        .remove(
-          remove_roles,
-          `Мьют от ${moderator.user.tag} ID: ${moderator.id}: ${args.data.reason}`
-        )
-        .catch(e => {
-          // throw new Error("Недостаточно прав для снятия ролей для мьюта.");
-        });
-
-      try {
-        await new Promise(resolve =>
-          setTimeout(() => {
-            member.roles.add(muted_role_id).catch(e => {});
-            resolve(true);
-          }, 1000)
-        );
-      } catch (e) {}
-      // let non_remove_roles = member.roles.cache
-      //   .filter((role) => !remove_roles.includes(role.id))
-      //   .map((role) => role.id);
-
-      // non_remove_roles.push(muted_role_id);
-
-      // await member.roles
-      //   .set(
-      //     non_remove_roles,
-      //     `Мьют от ${moderator.user.tag} ID: ${moderator.id}: ${args.data.reason}`
-      //   )
-      //   .catch((e) => {
-      //     // throw new Error("Не могу выдать роль мьюта.");
-      //   });
-
-      let mute_embed = new Discord.MessageEmbed()
-        .setThumbnail(member.user.displayAvatarURL({dynamic: true}))
+      let logs_embed = new Discord.MessageEmbed()
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
         .setDescription(":mute: Выдано Дисциплинарное наказание")
         .addField(
@@ -210,9 +214,9 @@ module.exports = () => {
         )
         .addField(
           ":tools: Модератором:",
-          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
+          `${moderator || ``} ${moderator?.user?.tag || ""} ID: ${moderator.id}`
         )
-        .addField(":alarm_clock: На:", `${f.time(args.data.time)}`)
+        .addField(":alarm_clock: На:", `${f.time(mute_data.time)}`)
         .addField(
           ":speaker: Снятие в:",
           `${time(
@@ -220,85 +224,251 @@ module.exports = () => {
             "R"
           )} (**\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`**)`
         )
-        .addField(":pencil: Причина:", args.data.reason);
+        .addField(":pencil: Причина:", mute_data.reason);
 
-      f.muted_members[member.id] = {
-        till
-      };
+      this._send_logs(logs_embed);
 
-      reports_channel.send({
-        embeds: [mute_embed]
-      });
+      member
+        .send(
+          `:mute: Вам было выдано дисциплинарное наказание на сервере **${
+            this.guild.name
+          }**. Истечет: ${time(
+            till,
+            "R"
+          )} (**\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`**) .\n:pencil: По причине: \`${
+            mute_data.reason
+          }\``
+        )
+        .catch((e) => {
+          f.handle_error(e, "[Warns_emitter] member.send in method mute");
+        });
+
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER warn", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method mute", {
+        emit_data: mute_data,
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("unmute", async args => {
+  async ban({ user_id, ban_data }) {
     try {
-      if (!check_args(args)) throw new Error("Один из аргументов не указан.");
+      if (!user_id) throw new Error("Не указан айди участника.");
+      if (!ban_data) throw new Error("Не указана информация о бане.");
 
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
+      if (!ban_data.reason || !ban_data.by || !ban_data.time || !ban_data.date)
+        throw new Error("Указана не полная информация о бане.");
+
+      let member = await this._get_member(user_id);
+      let till = new Date(new Date().getTime() + ban_data.time);
+
+      if (member) {
+        await member
+          .send(
+            `:hammer: Вам была выдана блокировка на сервере \`${
+              this.guild.name
+            }\`. На срок: ${
+              ban_data.time === 0
+                ? "Навсегда"
+                : `${f.time(
+                    ban_data.time || 0,
+                    "R"
+                  )}  (\`\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`\`)\n\nСсылка для возвращения после разбана: ${
+                    this._link
+                  }`
+            }
+             \nПо причине: ${ban_data.reason}\n\nЕсли хотите оспорить бан - ${
+              this._banned_link
+            }`
+          )
+          .catch((err) => {
+            f.handle_error(err, "[Warns_emitter] member.send in method ban", {
+              emit_data: ban_data,
+            });
+          });
+      }
+
+      let banned_member = await this.guild.members.ban(user_id).catch((err) => {
+        f.handle_error(err, "[Warn_emitter] method ban", {
+          emit_data: ban_data,
         });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
 
-      let muted_role_id = f.config.muted_role;
-      let muted_role = await reports_channel.guild.roles
-        .fetch(muted_role_id)
-        .catch(e => {
-          throw new Error("Роль для мьюта не найдена.");
-        });
+        return null;
+      });
 
-      if (!muted_role) throw new Error("Роль для мьюта не найдена.");
+      if (banned_member === null) {
+        return banned_member;
+      }
 
-      let member = await reports_channel.guild.members.fetch(args.user_id);
-      let moderator = await reports_channel.guild.members.fetch(args.data.by);
+      if (!banned_member) return false;
 
-      let db = args.mongo.collection("users");
+      let member_profile = new f.Profile(this.db, user_id);
+      let member_data = await member_profile.fetch();
 
-      let user_data =
-        (await db.findOne({
-          login: args.user_id
-        })) || {};
+      let bans = member_data.bans || [];
 
-      if (!user_data.muted?.is) throw new Error("У юзера нету мьютов.");
+      bans.push(ban_data);
 
-      let roles_add = user_data.muted?.roles || [];
+      let moderator = await this._get_member(ban_data.by);
 
-      roles_add = roles_add.filter(role_id => !member.roles.cache.has(role_id));
+      member_profile.update_data({ bans });
 
-      if (member.id in f.muted_members) delete f.muted_members[member.id];
+      let member_avatar_url = member
+        ? member.user.displayAvatarURL({
+            dynamic: true,
+          })
+        : banned_member?.displayAvatarURL({
+            dynamic: true,
+          });
 
-      await member.roles
-        .add(
-          roles_add,
-          `Размьют от ${moderator.user.tag} ID: ${moderator.id}: ${args.data.reason}`
+      let ban_logs = new Discord.MessageEmbed()
+        .setDescription(":hammer: Пользователь заблокирован")
+        .setColor("#EA1414")
+        .setThumbnail(member_avatar_url)
+        .setTimestamp()
+        .addField(
+          ":small_blue_diamond: Пользователь",
+          `${banned_member?.tag || "Unknown#0000"} ID: ${user_id}`
         )
-        .catch(e => {
-          console.log(e);
-          // throw new Error("Я не могу вернуть роли после мьюта.");
-        });
-
-      await member.roles
-        .remove(
-          muted_role_id,
-          `Размьют от ${moderator.user.tag} ID: ${moderator.id}: ${args.data.reason}`
+        .addField(
+          ":tools: Модератором",
+          `${moderator} ${moderator?.user?.tag} ID: ${ban_data.by}`
         )
-        .catch(e => {
-          // throw new Error("Я не могу снять роль мьюта.");
+        .addField(":pencil: За", ban_data.reason)
+        .addField(
+          ":alarm_clock: На срок:",
+          ban_data.time === 0 ? "Навсегда" : f.time(ban_data.time)
+        )
+        .addField(
+          ":unlock: Разбан в:",
+          ban_data.time === 0
+            ? "Никогда"
+            : `${time(
+                till,
+                "R"
+              )} (**\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`**)`
+        );
+
+      this._send_logs(ban_logs);
+      return true;
+    } catch (err) {
+      f.handle_error(err, "[Warns_emitter] method ban", {
+        emit_data: ban_data,
+      });
+
+      return false;
+    }
+  }
+
+  async kick({ user_id, kick_data }) {
+    try {
+      if (!user_id) throw new Error("Айди участника не указан.");
+      if (!kick_data) throw new Error("Информация о кике не указана.");
+
+      if (!kick_data.reason || !kick_data.by)
+        throw new Error("Информация о кике не полная.");
+
+      let member = await this._get_member(user_id);
+      if (!member) throw new Error("Указан несуществующий участник");
+
+      let moderator = await this._get_member(kick_data.by);
+
+      await member
+        .send(
+          `:hiking_boot: Вас выгнали с сервера \`${this.guild.name}\`\nПо причине: ${kick_data.reason}\n\nСсылка для возвращения: ${this._link}`
+        )
+        .catch((err) => {
+          f.handle_error(err, "[Warns_emitter] member.send in method kick", {
+            emit_data: kick_data,
+          });
         });
 
-      user_data.muted.is = false;
+      let kicked_user = await this.guild.members
+        .kick(
+          user_id,
+          `Кик от ${moderator.user.tag} ID: ${moderator.user.id}: ${kick_data.reason}`
+        )
+        .catch((err) => {
+          f.handle_error(err, "[Warns_emitter] members.kick in method kick", {
+            emit_data: kick_data,
+          });
 
-      update_data(db, user_data, args.user_id);
+          return null;
+        });
 
-      let unmute_embed = new Discord.MessageEmbed()
-        .setThumbnail(member.user.displayAvatarURL({dynamic: true}))
+      if (kicked_user === null) return kicked_user;
+
+      if (!kicked_user) throw new Error("Указанный участник не найден.");
+
+      let kick_logs = new Discord.MessageEmbed()
+        .setDescription(":hiking_boot: Пользователь выгнан с сервера")
+        .setThumbnail(
+          member.user.avatarURL({
+            dynamic: true,
+          })
+        )
+        .setTimestamp()
+        .addField(
+          ":small_blue_diamond: Пользователь",
+          `${member.user.tag || "Unknown#0000"} ID: ${user_id}`
+        )
+        .addField(
+          ":tools: Модератором",
+          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
+        )
+        .addField(":pencil: За", kick_data.reason);
+
+      this._send_logs(kick_logs);
+
+      return true;
+    } catch (err) {
+      f.handle_error(err, "[Warns_emitter] method kick", {
+        emit_data: kick_data,
+      });
+
+      return;
+    }
+  }
+
+  async unmute({ user_id, unmute_data }) {
+    try {
+      if (!user_id) throw new Error("Не указан айди участника.");
+      if (!unmute_data)
+        throw new Error("Неправильно указана информация о анмьюте.");
+
+      if (!unmute_data.by || !unmute_data.reason)
+        throw new Error("Неправильно указана информация о размьюте.");
+
+      let member = await this._get_member(user_id);
+      if (!member) throw new Error("Указанный участник не найден");
+
+      let moderator = await this._get_member(unmute_data.by);
+
+      let member_porfile = new f.Profile(this.db, user_id);
+      let member_data = await member_porfile.fetch();
+
+      let { muted, mutes } = member_data;
+
+      if (!muted.is) return true;
+
+      muted.is = false;
+      delete f.muted_members[member.id];
+
+      let roles = muted?.roles.filter((role) => !member.roles.cache.has(role));
+      await member.roles.add(roles).catch((err) => {
+        f.handle_error(
+          err,
+          "[Warns_emitter] member.roles.add in method unmute",
+          {
+            emit_data: { roles: muted.roles, unmute_data },
+          }
+        );
+      });
+
+      let unmute_logs = new Discord.MessageEmbed()
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
         .setDescription(":speaker: Снято Дисциплинарное наказание")
         .addField(
@@ -309,298 +479,200 @@ module.exports = () => {
           ":tools: Модератором:",
           `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
         )
-        .addField(":pencil: Причина:", args.data.reason);
+        .addField(":pencil: Причина:", unmute_data.reason);
 
-      reports_channel.send({embeds: [unmute_embed]}).catch(e => {});
-    } catch (err) {
-      f.handle_error("EMITTER unmute", err, {
-        emitt_data: args
-      });
-    }
-  });
-
-  warn_emitter.on("kick", async args => {
-    try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
-
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
-        });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
-
-      let moderator = await reports_channel.guild.members.fetch(args.data.by);
-
-      let member_id = args.user_id;
-      let member = args.user;
-      let {guild} = args;
-
-      await member
+      member
         .send(
-          `:hiking_boot: Вас выгнали с сервера \`${guild.name}\`\nПо причине: ${args.data.reason}\n\nСсылка для возвращения: https://discord.gg/QtwrAaJ`
+          `:speaker: С вас был снят мьют по причине: \`${unmute_data.reason}\` на сервере \`${member.guild.name}\``
         )
-        .catch(e => {});
-
-      let banned_user = await guild.members
-        .kick(
-          member_id,
-          `Кик от ${moderator.user.tag} ID: ${moderator.user.id}: ${args.data.reason}`
-        )
-        .catch(e => undefined);
-
-      banned_user = banned_user?.user || banned_user;
-
-      let banned_embed = new Discord.MessageEmbed()
-        .setDescription(":hiking_boot: Пользователь выгнан с сервера")
-        .setThumbnail(
-          member.displayAvatarURL
-            ? member.displayAvatarURL({
-                dynamic: true
-              })
-            : ""
-        )
-        .setTimestamp()
-        .addField(
-          ":small_blue_diamond: Пользователь",
-          `${member.user.tag || "Unknown#0000"} ID: ${member.id}`
-        )
-        .addField(
-          ":tools: Модератором",
-          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
-        )
-        .addField(":pencil: За", args.data.reason);
-
-      reports_channel.send({embeds: [banned_embed]}).catch(e => {});
-    } catch (err) {
-      f.handle_error("EMITTER kick", err, {
-        emitt_data: args
-      });
-    }
-  });
-
-  warn_emitter.on("ban", async args => {
-    try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
-
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
+        .catch((err) => {
+          f.handle_error(err, "[Warns_emitter] member.send in method unmute", {
+            emit_data: {
+              user_id,
+              unmute_data,
+            },
+          });
         });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
 
-      let moderator = await reports_channel.guild.members.fetch(args.data.by);
-
-      let member_id = args.user_id;
-      let member = args.user;
-      let {guild} = args;
-
-      let till =
-        args.data.time === 0
-          ? 0
-          : new Date(new Date().getTime() + args.data.time);
-
-      let ban_time = args.data?.time || 0;
-
-      if (member)
-        await member
-          .send(
-            `:hammer: Вам была выдана блокировка на сервере \`${
-              guild.name
-            }\`. На срок: ${
-              args.data.time === 0
-                ? "Навсегда"
-                : `${f.time(
-                    ban_time,
-                    "R"
-                  )}  (\`\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`\`)\n\nСсылка для возвращения после разбана: https://discord.gg/QtwrAaJ`
+      setTimeout(() => {
+        member.roles.remove(f.config.muted_role).catch((err) => {
+          f.handle_error(
+            err,
+            "[Warns_emitter] member.roles.remove in method unmute",
+            {
+              emit_data: {
+                user_id,
+                role_id: f.config.muted_role,
+              },
             }
-             \nПо причине: ${
-               args.data.reason
-             }\n\nЕсли хотите оспорить бан - https://discord.gg/9FrrHqYe6C`
-          )
-          .catch(e => {});
-
-      let banned_user = await guild.members
-        .ban(member_id, {
-          reason: `Бан от ${moderator.user.tag} ID: ${moderator.user.id}: ${args.data.reason}`,
-          days: 7
-        })
-        .catch(e => undefined);
-
-      banned_user = banned_user?.user || banned_user;
-
-      let users_db = args.mongo.collection("users");
-      let banneds_db = args.mongo.collection("banneds");
-      let ban_data =
-        (await banneds_db.findOne({
-          login: banned_user?.id || banned_user
-        })) || {};
-
-      let user_data =
-        (await users_db.findOne({
-          login: banned_user?.id || banned_user
-        })) || {};
-
-      let bans = user_data.bans || [];
-
-      bans.push(args.data);
-
-      user_data.bans = bans;
-
-      let new_data = {
-        login: user_data.login,
-        bans
-      };
-
-      await update_data(users_db, new_data, member_id);
-
-      let ban = {
-        reason: args.data.reason,
-        till: till === 0 ? 0 : till.getTime()
-      };
-
-      if (ban_data.login) ban.login = ban_data.login;
-
-      await update_data(banneds_db, ban, args.user_id);
-
-      let banned_embed = new Discord.MessageEmbed()
-        .setDescription(":hammer: Пользователь заблокирован")
-        .setColor("#EA1414")
-        .setThumbnail(
-          banned_user.displayAvatarURL
-            ? banned_user.displayAvatarURL({
-                dynamic: true
-              })
-            : ""
-        )
-        .setTimestamp()
-        .addField(
-          ":small_blue_diamond: Пользователь",
-          `${banned_user?.tag || "Unknown#0000"} ID: ${banned_user?.id ||
-            banned_user}`
-        )
-        .addField(
-          ":tools: Модератором",
-          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
-        )
-        .addField(":pencil: За", args.data.reason)
-        .addField(
-          ":alarm_clock: На срок:",
-          args.data.time === 0 ? "Навсегда" : f.time(args.data.time)
-        )
-        .addField(
-          ":unlock: Разбан в:",
-          args.data.time === 0
-            ? "Никогда"
-            : `${time(
-                till,
-                "R"
-              )} (**\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`**)`
-        );
-
-      reports_channel.send({embeds: [banned_embed]}).catch(e => {});
-    } catch (err) {
-      f.handle_error("EMITTER ban", err, {
-        emitt_data: args
-      });
-    }
-  });
-
-  warn_emitter.on("unban", async args => {
-    try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
-
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
+          );
         });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
+      }, 1000);
 
-      let moderator = await reports_channel.guild.members.fetch(args.data.by);
-      let member_id = args.user_id;
-      let unbanned_user = args.unbanned_user?.user || args.unbanned_user;
-      let banneds_db = args.mongo.collection("banneds");
-
-      banneds_db.deleteOne({
-        login: member_id
+      member_porfile.update_data({
+        muted,
+      });
+      this._send_logs(unmute_logs);
+      return true;
+    } catch (err) {
+      f.handle_error(err, "[Warns_emitter] method unmute", {
+        emit_data: unmute_data,
       });
 
-      let banned_embed = new Discord.MessageEmbed()
+      return false;
+    }
+  }
+
+  async unban({ user_id, unban_data }) {
+    try {
+      if (!user_id) throw new Error("Не указан айди участника.");
+      if (!unban_data) throw new Error("Не указана информация о бане.");
+
+      if (!unban_data.by || !unban_data.reason)
+        throw new Error("Неправильно заполнена информация о бане.");
+
+      let moderator = await this._get_member(unban_data.by);
+
+      let unbanned_user = await this.guild.members
+        .unban(user_id)
+        .catch((err) => undefined);
+
+      if (!unbanned_user) return null;
+
+      let unban_logs = new Discord.MessageEmbed()
         .setDescription(":hammer: Пользователь Разблокирован")
         .setColor("#48EA14")
         .setThumbnail(
           unbanned_user?.displayAvatarURL
             ? unbanned_user.displayAvatarURL({
-                dynamic: true
+                dynamic: true,
               })
             : ""
         )
         .setTimestamp()
         .addField(
           ":small_blue_diamond: Пользователь",
-          `${unbanned_user?.tag || "Unknown#0000"} ID: ${unbanned_user?.id ||
-            unbanned_user ||
-            args.user_id}`
+          `${unbanned_user?.tag || "Unknown#0000"} ID: ${
+            unbanned_user?.id || user_id
+          }`
         )
         .addField(
           ":tools: Модератором",
-          `${moderator} ${moderator?.user?.tag} ID: ${args.data.by}`
+          `${moderator} ${moderator?.user?.tag} ID: ${unban_data.by}`
         )
-        .addField(":pencil: Причина:", args.data.reason);
+        .addField(":pencil: Причина:", unban_data.reason);
 
-      reports_channel.send({embeds: [banned_embed]}).catch(e => {});
+      this._send_logs(unban_logs);
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER unban", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method kick", {
+        options: {
+          user_id,
+          unban_data,
+        },
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("report", async args => {
+  async report({ user_id, report_data }) {
     try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
+      let {
+        channel,
+        reason,
+        attachments = [],
+        type,
+        by,
+        message_id,
+      } = report_data;
+      if (!channel || !reason || !attachments || !type || !by)
+        throw new Error("Неправильно заполнена информация о репорте.");
 
-      let report_author = args.report_author?.user || args.report_author;
-      let {channel, targetId, reason, attachments = [], type} = args.data;
+      let member_by = await this._get_member(by);
 
-      let reports_channel = Bot.bot.channels.cache.get(
+      let reports_channel = this.guild.channels.cache.get(
         f.config.user_reports_channel
       );
 
-      if (type === "MESSAGE") {
-        let reported_message = await channel.messages.fetch(targetId);
+      if (!reports_channel)
+        throw new Error(
+          "Осутствует канал для репортов.",
+          "[Warns_emitter] method report",
+          {
+            emit_data: report_data,
+          }
+        );
+      if (type === "USER") {
+        let member = await this._get_member(user_id);
+        if (!member) throw new Error("Участник для репорта не найден.");
 
         let moderator_roles = f.config.moderator_roles || [];
 
         let reason_attachments = attachments.map(
-          attach => `${attach.contentType}: [Вложение](${attach.url})`
+          (attach) => `${attach.contentType}: [Вложение](${attach.url})`
+        );
+        let report_embed = new Discord.MessageEmbed()
+          .setColor(f.config.colorEmbed)
+          .setAuthor(`Репорт пользователя:`)
+          .setThumbnail(member?.user?.displayAvatarURL({ dynamic: true }))
+          .addField(
+            "Автор репорта:",
+            `${member_by} ${member_by.user.tag} ID: ${by}`
+          )
+          .addField(
+            "Нарушитель:",
+            `${member || ""} ${
+              member?.user.tag || "Unknown#0000"
+            } ID: ${user_id}`
+          )
+          .addField("Причина:", reason || "Почему-то не указано.")
+
+          .addField(
+            "Вложения:",
+            reason_attachments[0] ? reason_attachments.join("\n") : "Нет."
+          );
+        reports_channel.send({
+          content: moderator_roles[0]
+            ? moderator_roles.map((role_id) => `<@&${role_id}>`).join(", ")
+            : undefined,
+          embeds: [report_embed],
+        });
+
+        return true;
+      }
+
+      if (type === "MESSAGE") {
+        let reported_message = await channel.messages.fetch(message_id);
+        let member = reported_message.member;
+
+        let moderator_roles = f.config.moderator_roles || [];
+
+        let reason_attachments = attachments.map(
+          (attach) => `${attach.contentType}: [Вложение](${attach.url})`
         );
         let report_embed = new Discord.MessageEmbed()
           .setColor(f.config.colorEmbed)
           .setAuthor(`Репорт сообщения:`)
           .setThumbnail(
-            reported_message.author?.displayAvatarURL({dynamic: true})
+            reported_message.author?.displayAvatarURL({ dynamic: true })
           )
           .addField(
             "Автор репорта:",
-            `${report_author} ${report_author.tag} ID: ${report_author.id}`
+            `${member_by} ${member_by.user.tag} ID: ${by}`
           )
           .addField(
             "Нарушитель:",
-            `${reported_message?.author.tag ||
-              "Unknown#0000"} ID: ${reported_message?.author.id ||
-              "000000000000000000"}`
+            `${reported_message?.author.tag || "Unknown#0000"} ID: ${user_id}`
           )
           .addField("Причина:", reason || "Почему-то не указано.")
           .addField(
             "Содержание сообщения:",
-            `${reported_message?.content ||
-              "Пусто."}\n\n[Ссылка на сообщение](https://discord.com/channels/${
+            `${
+              reported_message?.content || "Пусто."
+            }\n\n[Ссылка на сообщение](https://discord.com/channels/${
               channel.guild.id
-            }/${channel.id}/${targetId})`
+            }/${channel.id}/${message_id})`
           )
           .addField(
             "Вложения:",
@@ -608,417 +680,338 @@ module.exports = () => {
           );
         reports_channel.send({
           content: moderator_roles[0]
-            ? moderator_roles.map(role_id => `<@&${role_id}>`).join(", ")
+            ? moderator_roles.map((role_id) => `<@&${role_id}>`).join(", ")
             : undefined,
-          embeds: [report_embed]
+          embeds: [report_embed],
         });
-      }
 
-      if (type === "USER") {
-        let reported_user = await channel.guild.members
-          .fetch(targetId)
-          .catch(e => undefined);
-
-        let moderator_roles = f.config.moderator_roles || [];
-
-        let reason_attachments = attachments.map(
-          attach => `${attach.contentType}: [Вложение](${attach.url})`
-        );
-        let report_embed = new Discord.MessageEmbed()
-          .setColor(f.config.colorEmbed)
-          .setAuthor(`Репорт пользователя:`)
-          .setThumbnail(reported_user?.user?.displayAvatarURL({dynamic: true}))
-          .addField(
-            "Автор репорта:",
-            `${report_author} ${report_author.tag} ID: ${report_author.id}`
-          )
-          .addField(
-            "Нарушитель:",
-            `${reported_user || ""} ${reported_user?.user.tag ||
-              "Unknown#0000"} ID: ${targetId}`
-          )
-          .addField("Причина:", reason || "Почему-то не указано.")
-
-          .addField(
-            "Вложения:",
-            reason_attachments[0] ? reason_attachments.join("\n") : "Нет."
-          );
-        reports_channel.send({
-          content: moderator_roles[0]
-            ? moderator_roles.map(role_id => `<@&${role_id}>`).join(", ")
-            : undefined,
-          embeds: [report_embed]
-        });
+        return true;
       }
     } catch (err) {
-      f.handle_error("EMITTER report", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method report", {
+        emit_data: {
+          user_id,
+          report_data,
+        },
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("time_role", async args => {
+  async time_role({ user_id, time_role_data }) {
     try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
+      let { time, till, id, by } = time_role_data;
 
-      let reports_channel = Bot.bot.channels.cache.get(
-        f.config.reports_channel
-      );
-
-      let members = await reports_channel.guild.members
-        .fetch({
-          user: [args.user_id, args.data.by]
-        })
-        .catch(e => {
-          throw new Error("Указан неправильный пользователь.");
-        });
-      let member = members.filter(member => member.id === args.user_id).first();
-
-      let moderator = members
-        .filter(member => member.id === args.data.by)
-        .first();
-
-      if (!member || !moderator)
-        throw new Error("Указан неправильный модератор или участник.");
-
-      let user_data = await args.mongo
-        .collection("users")
-        .findOne({login: args.user_id});
-
-      let user = user_data || {};
-
-      let timed_roles = user.timedRoles || [];
-
-      let role_data = args.data;
-
-      if (!role_data.id || !role_data.till)
+      if (!time || !till || !id || !by)
         throw new Error("Один из аргументов роли не указан.");
 
-      let role = {
-        role: role_data.id[0],
-        time: role_data.till
+      let new_role = {
+        role: id,
+        time: till,
       };
 
-      let same_role = timed_roles.filter(
-        time_role => role.role === time_role.role
+      let member = await this._get_member(user_id);
+      if (!member) throw new Error("Участник не найден");
+
+      let moderator = await this._get_member(by);
+
+      let guild_role = this.guild.roles.cache.get(id);
+
+      let member_profile = new f.Profile(this.db, user_id);
+      let member_data = await member_profile.fetch();
+
+      let member_timed_roles = member_data.timedRoles || [];
+
+      let same_role = member_timed_roles.filter(
+        (time_role) => time_role.role === id
       )[0];
 
-      if (same_role) timed_roles[timed_roles.indexOf(same_role)] = role;
-      else timed_roles.push(role);
+      if (same_role)
+        member_timed_roles[member_timed_roles.indexOf(same_role)] = new_role;
+      else member_timed_roles.push(new_role);
+
+      if (!member.roles.cache.has(id))
+        await member.roles.add(id).catch((err) => {
+          f.handle_error(
+            err,
+            "[Warns_emitter] member.roles.add in method time_role",
+            {
+              emit_data: time_role_data,
+            }
+          );
+        });
+
+      member_profile.update_data({ timedRoles: member_timed_roles });
+
+      member
+        .send(
+          `${`:white_check_mark: Вам была выдана временная роль \`${guild_role.name}\``} на сервере \`${
+            member.guild.name
+          }\`\n:timer: На срок: \`${f.time(time)}\``
+        )
+        .catch((e) => {});
 
       let role_embed = new Discord.MessageEmbed()
-        .setThumbnail(member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTitle(":calendar_spiral: Выдана временная роль:")
         .addField(
           ":small_blue_diamond: Пользователю:",
-          `${member} ${member.user.tag} ID: ${member.id}`
+          `${member} ${member.user.tag} ID: ${user_id}`
         )
         .addField(
           ":tools: Модератором:",
           `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
         )
-        .addField(
-          ":round_pushpin: Роль:",
-          `${role_data.id.map(role_id =>
-            reports_channel.guild.roles.cache.get(role_id)
-          )}`
-        )
+        .addField(":round_pushpin: Роль:", `${guild_role}`)
         .addField(
           ":alarm_clock: На:",
-          `${role_data.time === 0 ? "Навсегда" : f.time(role_data.time)}`
+          `${time === 0 ? "Навсегда" : f.time(time)}`
         );
 
-      member.roles
-        .add(role_data.id)
-        .catch(e =>
-          console.log("API ERROR: Не могу выдать роль " + role_data.id)
-        );
+      this._send_logs(role_embed);
 
-      reports_channel.send({embeds: [role_embed]});
-
-      let guild_roles = role_data.id.map(
-        role_id => reports_channel.guild.roles.cache.get(role_id)?.name
-      );
-
-      member
-        .send(
-          `${
-            guild_roles[1]
-              ? `Вам были выданы временные роли \`${guild_roles.join(", ")}\``
-              : `Вам была выдана временная роль \`${guild_roles.join(", ")}\``
-          }\n На срок: \`${f.time(role_data.time)}\``
-        )
-        .catch(e => {});
-      user.timedRoles = timed_roles;
-
-      let new_data = {
-        login: user.login,
-        timedRoles: timed_roles
-      };
-      update_data(args.mongo.collection("users"), new_data, args.user_id);
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER time_role", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method role", {
+        emit_data: time_role_data,
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("time_role_remove", async args => {
+  async time_role_remove({ user_id, time_roles_data }) {
     try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
+      if (!user_id) throw new Error("Не указан айди участника");
 
-      let reports_channel = Bot.bot.channels.cache.get(
-        f.config.reports_channel
+      let { id, by } = time_roles_data;
+
+      if (!id || !by) throw new Error("Один из аргументов роли не указан.");
+
+      let member = await this._get_member(user_id);
+
+      let moderator = await this._get_member(by);
+
+      let guild_role = this.guild.roles.cache.get(id);
+
+      let member_profile = new f.Profile(this.db, user_id);
+      let member_data = await member_profile.fetch();
+
+      let member_timed_roles = member_data.timedRoles || [];
+
+      let new_roles = member_timed_roles.filter(
+        (time_role) =>
+          !(id.includes ? id.includes(time_role.role) : time_role.role === id)
       );
 
-      let members = await reports_channel.guild.members
-        .fetch({
-          user: [args.user_id, args.data.by]
-        })
-        .catch(e => {
-          throw new Error("Указан неправильный пользователь.");
+      let roles_to_remove = member.roles.cache.filter((role) =>
+        id.includes ? id.includes(role.id) : id === role.id
+      );
+
+      await member.roles
+        .remove(roles_to_remove.map((role) => role.id))
+        .catch((err) => {
+          f.handle_error(err, "[Warns_emitter] member.roles.remove");
         });
-      let member =
-        members.filter(member => member.id === args.user_id).first() || {};
 
-      let moderator =
-        members.filter(member => member.id === args.data.by).first() || {};
-
-      // if (!member || !moderator)
-      //   throw new Error("Указан неправильный модератор или участник.");
-
-      let user_data = await args.mongo
-        .collection("users")
-        .findOne({login: args.user_id});
-
-      let user = user_data || {};
-
-      let timed_role = user.timedRoles || [];
-
-      let roles_to_remove = args.data.id;
-
-      let final_roles = timed_role.filter(
-        role_data => !roles_to_remove.includes(role_data.role)
-      );
-
-      user.timedRoles = final_roles;
-
-      member.roles.remove(roles_to_remove).catch(e => {
-        console.log("API ERROR: Не могу снять роль " + roles_to_remove);
-        // f.handle_error();
-      });
-
-      let guild_roles_to_remove = roles_to_remove.map(role_id =>
-        reports_channel.guild.roles.cache.get(role_id)
-      );
+      member_profile.update_data({ timedRoles: new_roles });
 
       let role_embed = new Discord.MessageEmbed()
-        .setThumbnail(member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTitle(":calendar_spiral: Снята временная роль:")
         .addField(
           ":small_blue_diamond: Пользователю:",
-          `${member || "Пользователь#0000"} ${
-            member?.user?.tag
-          } ID: ${member?.id || member_id}`
+          `${member || "Пользователь#0000"} ${member?.user?.tag} ID: ${user_id}`
         )
         .addField(
           ":tools: Модератором:",
-          `${moderator || "Пользователь#0000"} ${moderator?.user?.tag ||
-            ""} ID: ${moderator?.id || ""}`
+          `${moderator || "Пользователь#0000"} ${
+            moderator?.user?.tag || ""
+          } ID: ${moderator?.id || ""}`
         )
         .addField(
           ":round_pushpin: Роль:",
-          `${
-            roles_to_remove.map
-              ? guild_roles_to_remove.join(`, `)
-              : reports_channel.guild.roles.cache.get(role_data) ||
-                "ROLE_IS_NOT_DEFINED"
-          }`
-        );
-
-      member.roles
-        .remove(roles_to_remove)
-        .catch(e =>
-          console.log("API ERROR: Не могу снять роль " + roles_to_remove)
+          `${roles_to_remove.map((role) => role).join(", ")}`
         );
 
       member
         .send(
-          `${
-            guild_roles_to_remove[1]
-              ? `Вам были сняты временные роли \`${guild_roles_to_remove
-                  .map(role => role?.name)
-                  .join(", ")}\``
-              : `Вам была снята временная роль \`${guild_roles_to_remove
-                  .map(role => role?.name)
-                  .join(", ")}\``
-          }`
+          `:wastebasket: С вас была снята временная роль: \`${roles_to_remove
+            .map((role) => role.name)
+            .join(", ")}\` на сервере \`${member.guild.name}\``
         )
-        .catch(e => {});
-
-      reports_channel.send({embeds: [role_embed]});
-
-      let new_data = {
-        login: user.login,
-        timedRoles: final_roles
-      };
-
-      update_data(args.mongo.collection("users"), new_data, args.user_id);
-    } catch (err) {
-      f.handle_error("EMITTER time_role_remove", err, {
-        emitt_data: args
-      });
-    }
-  });
-
-  warn_emitter.on("warn_remove", async args => {
-    try {
-      if (!check_args(args)) throw new Error("Один из аргументов не указан.");
-
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
+        .catch((err) => {
+          f.handle_error(
+            err,
+            "[Warns_emitter] member.send in method time_role_remove",
+            {
+              emit_data: time_roles_data,
+            }
+          );
         });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
 
-      let db = args.mongo.collection("users");
+      this._send_logs(role_embed);
 
-      let warn_data = args.data.warn_data;
-      let warn_date = new Date(warn_data.date);
-
-      let members_cache = await reports_channel.guild.members.fetch({
-        id: [args.user_id, args.data.by, warn_data.by]
+      return true;
+    } catch (err) {
+      f.handle_error(err, "[Warns_emitter] method time_role_remove", {
+        emit_data: time_roles_data,
       });
 
-      let member = members_cache
-        .filter(member => member.id === args.user_id)
-        .first();
-      let moderator = members_cache
-        .filter(member => member.id === args.data.by)
-        .first();
+      return false;
+    }
+  }
 
-      let warn_moderator = members_cache
-        .filter(member => member.id === warn_data.by)
-        .first();
+  async warn_remove({ user_id, warn_remove_data }) {
+    try {
+      if (!user_id) throw new Error("Не указан айди участника.");
+      if (!warn_remove_data)
+        throw new Error("Неправильно указана информация о снятом варне.");
 
-      if (!moderator) moderator = Bot.bot;
+      let { by, warn_data } = warn_remove_data;
+
+      if (!by || !warn_data)
+        throw new Error("Неправильно указана информация о снятом варне.");
+
+      let member = await this._get_member(user_id);
+
+      let moderator = await this._get_member(by);
+
+      let warn_moderator = await this._get_member(warn_data.by);
+
+      let warn_date = new Date(warn_data.date);
 
       let warn_embed = new Discord.MessageEmbed()
         .setDescription(":warning: Снято предупреждение")
-        .setThumbnail(member?.user?.avatarURL({dynamic: true}))
+        .setThumbnail(member?.user?.avatarURL({ dynamic: true }))
         .setTimestamp()
         .addField(
           ":small_blue_diamond: С Пользователя",
-          `${member || ""} ${member?.user?.tag ||
-            "Пользователь#0000"} ID: ${member?.id || args.user_id}`
+          `${member || ""} ${
+            member?.user?.tag || "Пользователь#0000"
+          } ID: ${user_id}`
         )
         .addField(
           ":tools: Модератором",
-          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
+          `${moderator || ""} ${
+            moderator.user.tag || "Модератор#0000"
+          } ID: ${by}`
         )
         .addField(
           "⚠️ Содержание предупреждения:",
-          `Дата: \`${warn_date.toLocaleDateString()} ${warn_date.toLocaleTimeString()} по МСК\`\nМодератор: \`${warn_moderator
-            ?.user?.tag || warn_data.by}\`\nПричина: \`${warn_data.reason}\``
+          `Дата: \`${warn_date.toLocaleDateString()} ${warn_date.toLocaleTimeString()} по МСК\`\nМодератор: \`${
+            warn_moderator?.user?.tag || warn_data.by
+          }\`\nПричина: \`${warn_data.reason}\``
         );
 
-      reports_channel.send({embeds: [warn_embed]});
+      this._send_logs(warn_embed);
+
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER warn_remove", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] warn_remove", {
+        emit_data: warn_remove_data,
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("mute_remove", async args => {
+  async mute_remove({ user_id, mute_remove_data }) {
     try {
-      if (!check_args(args)) throw new Error("Один из аргументов не указан.");
+      if (!user_id) throw new Error("Айди участника не указан");
 
-      let reports_channel = await Bot.bot.channels
-        .fetch(f.config.reports_channel)
-        .catch(e => {
-          throw new Error("Канал репортов не найден.");
-        });
-      if (!reports_channel) throw new Error("Канал репортов не найден.");
+      if (!mute_remove_data)
+        throw new Error("Информация о снятом мьюте не указана.");
 
-      let db = args.mongo.collection("users");
+      let { by, mute_data } = mute_remove_data;
 
-      let warn_data = args.data.warn_data;
-      let warn_date = new Date(warn_data.date);
+      if (!by || !mute_data) throw new Error("Один из аргументов не указан.");
 
-      let members_cache = await reports_channel.guild.members.fetch({
-        id: [args.user_id, args.data.by, warn_data.by]
-      });
+      let member = await this._get_member(user_id);
 
-      let member = members_cache
-        .filter(member => member.id === args.user_id)
-        .first();
-      let moderator = members_cache
-        .filter(member => member.id === args.data.by)
-        .first();
+      let moderator = await this._get_member(by);
 
-      let warn_moderator = members_cache
-        .filter(member => member.id === warn_data.by)
-        .first();
+      let mute_moderator = await this._get_member(mute_data.by);
 
-      if (!moderator) moderator = Bot.bot;
+      let mute_date = new Date(mute_data.date);
 
       let warn_embed = new Discord.MessageEmbed()
         .setDescription("🔇 Снят мьют")
-        .setThumbnail(member?.user?.avatarURL({dynamic: true}))
+        .setThumbnail(member?.user?.avatarURL({ dynamic: true }))
         .setTimestamp()
         .addField(
           ":small_blue_diamond: С Пользователя",
-          `${member || ""} ${member?.user?.tag ||
-            "Пользователь#0000"} ID: ${member?.id || args.user_id}`
+          `${member || ""} ${
+            member?.user?.tag || "Пользователь#0000"
+          } ID: ${user_id}`
         )
         .addField(
           ":tools: Модератором",
-          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
+          `${moderator || ""} ${
+            moderator.user.tag || "Модератор#0000"
+          } ID: ${by}`
         )
         .addField(
           "🔇 Содержание мьюта:",
-          `Дата: \`${warn_date.toLocaleDateString()} ${warn_date.toLocaleTimeString()} по МСК\`\nМодератор: \`${warn_moderator
-            ?.user?.tag || warn_data.by}\`\nПричина: \`${warn_data.reason}\``
+          `Дата: \`${mute_date.toLocaleDateString()} ${mute_date.toLocaleTimeString()} по МСК\`\nМодератор: \`${
+            mute_moderator?.user?.tag || mute_data.by
+          }\`\nПричина: \`${mute_data.reason}\``
         );
 
-      reports_channel.send({embeds: [warn_embed]});
+      this._send_logs(warn_embed);
+
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER warn_remove", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method mute_remove", {
+        emit_data: mute_remove_data,
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("role", async args => {
+  async role({ user_id, role_data }) {
     try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
+      if (!user_id) throw new Error("Айди участника не указан.");
 
-      let role_data = args.data.id;
+      if (!role_data)
+        throw new Error("Не указана информация о роли для выдачи.");
 
-      let reports_channel = Bot.bot.channels.cache.get(
-        f.config.reports_channel
-      );
+      let { id, by } = role_data;
 
-      let members = await reports_channel.guild.members
-        .fetch({
-          user: [args.user_id, args.data.by]
-        })
-        .catch(e => {
-          throw new Error("Указан неправильный пользователь.");
+      if (!id || !by) throw new Error("Информация не полная.");
+
+      let member = await this._get_member(user_id);
+
+      if (!member) throw new Error("Указан несуществующий участник");
+
+      let moderator = await this._get_member(by);
+
+      let roles_to_add;
+
+      if (id.includes) {
+        roles_to_add = id.filter((role_id) => !member.roles.cache.has(role_id));
+      } else {
+        roles_to_add = id;
+      }
+
+      let result = await member.roles.add(roles_to_add).catch((err) => {
+        f.handle_error(err, "[Warns_emitter] member.roles.add in method role", {
+          emit_data: roles_to_add,
         });
-      let member = members.filter(member => member.id === args.user_id).first();
 
-      let moderator = members
-        .filter(member => member.id === args.data.by)
-        .first();
+        return false;
+      });
 
-      if (!member || !moderator)
-        throw new Error("Указан неправильный модератор или участник.");
+      if (!result) return false;
+
+      let guild_roles = member.guild.roles.cache
+        .filter((role) => (id.includes ? id.includes(role.id) : id === role.id))
+        .map((role) => role);
 
       let role_embed = new Discord.MessageEmbed()
-        .setThumbnail(member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTitle(":calendar_spiral: Выдана роль:")
         .addField(
           ":small_blue_diamond: Пользователю:",
@@ -1028,119 +1021,128 @@ module.exports = () => {
           ":tools: Модератором:",
           `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
         )
-        .addField(
-          ":round_pushpin: Роль:",
-          `${role_data
-            .map(role_id => reports_channel.guild.roles.cache.get(role_id))
-            .join(", ")}`
-        );
-
-      member.roles
-        .add(role_data)
-        .catch(e =>
-          console.log("API ERROR: Не могу выдать роль " + role_data.id)
-        );
-
-      let guild_roles = role_data.map(
-        role_id => reports_channel.guild.roles.cache.get(role_id)?.name
-      );
+        .addField(":round_pushpin: Роль:", `${guild_roles.join(", ")}`);
 
       member
         .send(
-          `${
-            guild_roles[1]
-              ? `Вам были выданы роли \`${guild_roles.join(", ")}\``
-              : `Вам была выдана роль \`${guild_roles.join(", ")}\``
-          }\n На срок: \`${f.time(role_data.time)}\``
+          `:white_check_mark: Вам были выданы роли \`${guild_roles
+            .map((r) => r.name)
+            .join(", ")}\` на сервере \`${member.guild.name}\``
         )
-        .catch(e => {});
+        .catch((err) => {
+          f.handle_error(err, "[Warns_emitter] member.send in method role", {
+            emit_data: { user_id },
+          });
+        });
+      this._send_logs(role_embed);
 
-      reports_channel.send({embeds: [role_embed]});
+      return true;
     } catch (err) {
-      f.handle_error("EMITTER role", err, {
-        emitt_data: args
+      f.handle_error(err, "[Warns_emitter] method role", {
+        emit_data: role_data,
       });
+
+      return false;
     }
-  });
+  }
 
-  warn_emitter.on("role_remove", async args => {
+  async role_remove({ user_id, role_remove_data }) {
     try {
-      if (!check_args(args)) throw new Error("Недостаточно аргументов.");
+      if (!user_id) throw new Error("Не указан айди участника.");
 
-      let reports_channel = Bot.bot.channels.cache.get(
-        f.config.reports_channel
+      if (!role_remove_data)
+        throw new Error("Не указана информация о роли для снятия.");
+
+      let { id, by } = role_remove_data;
+      if (!id || !by) throw new Error("Информация о снятии ролей не полная.");
+
+      let member = await this._get_member(user_id);
+      if (!member) throw new Error("Указан несуществующий участник");
+
+      let moderator = await this._get_member(by);
+
+      let roles_to_remove;
+
+      if (id.includes) {
+        roles_to_remove = member.roles.cache.filter((role) =>
+          id.includes(role.id)
+        );
+      } else {
+        roles_to_remove = id;
+      }
+
+      let result = await member.roles.remove(roles_to_remove).catch((err) => {
+        f.handle_error(
+          err,
+          "[Warns_emitter] member.roles.remove in method role_remove",
+          {
+            emit_data: role_remove_data,
+          }
+        );
+
+        return false;
+      });
+
+      if (!result) return false;
+
+      let guild_roles = this.guild.roles.cache
+        .filter((role) => (id.includes ? id.includes(role.id) : id === role.id))
+        .map((r) => r);
+
+      member.send(
+        `:wastebasket: С вас была снята роль \`${guild_roles
+          .map((role) => role.name)
+          .join(", ")}\` на сервере \`${this.guild.name}\``
       );
 
-      let members = await reports_channel.guild.members
-        .fetch({
-          user: [args.user_id, args.data.by]
-        })
-        .catch(e => {
-          throw new Error("Указан неправильный пользователь.");
-        });
-      let member = members.filter(member => member.id === args.user_id).first();
-
-      let moderator = members
-        .filter(member => member.id === args.data.by)
-        .first();
-
-      if (!member || !moderator)
-        throw new Error("Указан неправильный модератор или участник.");
-
-      let roles_to_remove = args.data.id;
-
       let role_embed = new Discord.MessageEmbed()
-        .setThumbnail(member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTitle(":calendar_spiral: Снята роль:")
         .addField(
           ":small_blue_diamond: Пользователю:",
-          `${member} ${member.user.tag} ID: ${member.id}`
+          `${member} ${member.user.tag} ID: ${user_id}`
         )
         .addField(
           ":tools: Модератором:",
-          `${moderator} ${moderator.user.tag} ID: ${moderator.id}`
+          `${moderator} ${moderator?.user?.tag} ID: ${by}`
         )
-        .addField(
-          ":round_pushpin: Роль:",
-          `${
-            roles_to_remove.map
-              ? roles_to_remove
-                  .map(role_id =>
-                    reports_channel.guild.roles.cache.get(role_id)
-                  )
-                  .join(`, `)
-              : reports_channel.guild.roles.cache.get(role_data) ||
-                "ROLE_IS_NOT_DEFINED"
-          }`
-        );
+        .addField(":round_pushpin: Роль:", `${guild_roles.join(", ")}`);
 
-      member.roles
-        .remove(roles_to_remove)
-        .catch(e =>
-          console.log("API ERROR: Не могу снять роль " + roles_to_remove)
-        );
+      this._send_logs(role_embed);
+      return true;
+    } catch (err) {
+      f.handle_error(err, "[Warns_emitter] method role_remove", {
+        emit_data: role_remove_data,
+      });
 
-      let guild_roles = roles_to_remove.id.map(
-        role_id => reports_channel.guild.roles.cache.get(role_id)?.name
+      return false;
+    }
+  }
+
+  _send_logs(log_embed, options = {}) {
+    if (!log_embed) throw new Error("Ембед для отправки в логи не указан.");
+
+    let logs_channel = Bot.bot.channels.cache.get(f.config.reports_channel);
+
+    if (!logs_channel) {
+      f.handle_error(
+        new Error("Не найден канал для логов."),
+        "[Warns_emitter] _send_logs"
       );
 
-      member
-        .send(
-          `${
-            guild_roles[1]
-              ? `Вам были выданы временные роли \`${guild_roles.join(", ")}\``
-              : `Вам была выдана временная роль \`${guild_roles.join(", ")}\``
-          }\n На срок: \`${f.time(role_data.time)}\``
-        )
-        .catch(e => {});
-
-      reports_channel.send({embeds: [role_embed]});
-    } catch (err) {
-      f.handle_error("EMITTER role_remove", err, {
-        emitt_data: args
-      });
+      return;
     }
-  });
 
-  return warn_emitter;
-};
+    logs_channel.send({ embeds: [log_embed], ...options });
+  }
+
+  async _get_member(member_id) {
+    let member = await this.guild.members
+      .fetch(member_id)
+      .catch((err) => undefined);
+
+    return member;
+  }
+}
+
+module.exports = Warn_emitter;

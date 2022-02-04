@@ -1,11 +1,11 @@
 const Discord = require("discord.js");
-const {Intents} = require("discord.js");
-const {REST} = require("@discordjs/rest");
-const {Routes} = require("discord-api-types/v9");
+const { Intents } = require("discord.js");
+const { REST } = require("@discordjs/rest");
+const { Routes } = require("discord-api-types/v9");
 const config = require("./config/config.json");
-const {token} = require("./config/token.json");
-const {MongoClient} = require("mongodb");
-const {promisify} = require("util");
+const { token } = require("./config/token.json");
+const { MongoClient } = require("mongodb");
+const { promisify } = require("util");
 const mongo_config = require("./config/mongo.json");
 
 const fs = require("fs");
@@ -13,7 +13,7 @@ let f = require("./config/modules");
 
 const connect_mongo = promisify(MongoClient.connect);
 const Client = new Discord.Client({
-  intents: [Object.values(Intents.FLAGS)]
+  intents: [Object.values(Intents.FLAGS)],
 });
 
 class Bot_builder {
@@ -39,6 +39,8 @@ class Bot_builder {
 
     await this._login();
 
+    f.warn_emitter = new f.warn_emitter(this.mongo);
+
     await this._load_slash();
     timer.stop();
   }
@@ -53,7 +55,7 @@ class Bot_builder {
   async _load_mongodb() {
     try {
       if (mongo_config.auth) {
-        let {user, pass, ip, port, db} = mongo_config;
+        let { user, pass, ip, port, db } = mongo_config;
 
         this.mongo = await connect_mongo(
           `mongodb://${user}:${pass}@${ip}:${port}/${db}`
@@ -77,7 +79,7 @@ class Bot_builder {
     let commands = [];
 
     let folders = commands_dir.filter(
-      folder_name => !folder_name.split(".")[1]
+      (folder_name) => !folder_name.split(".")[1]
     );
 
     for (let folder_name of folders) {
@@ -88,11 +90,11 @@ class Bot_builder {
       let name = folder_name.split(" ")[0];
 
       let files = commands_files
-        .filter(file_name => file_name.endsWith(".js"))
-        .map(file_name => {
+        .filter((file_name) => file_name.endsWith(".js"))
+        .map((file_name) => {
           return {
             command_folder: folder_name,
-            command_name: file_name
+            command_name: file_name,
           };
         });
       if (files[0]) commands.push(...files);
@@ -140,7 +142,7 @@ class Bot_builder {
     let readdir = promisify(fs.readdir);
 
     let events_dir = await readdir("./events");
-    let events = events_dir.filter(event_file => event_file.endsWith(".js"));
+    let events = events_dir.filter((event_file) => event_file.endsWith(".js"));
 
     let step = this._percent(events.length, "Евенты");
 
@@ -160,8 +162,10 @@ class Bot_builder {
           config: this.config,
           f: f,
           mongo: this.mongo,
-          db: this.mongo.db("gtaEZ")
+          db: this.mongo.db("gtaEZ"),
         };
+
+        console.log(event_file);
 
         this.bot.on(event_name, event.bind(null, args));
         this.events.push(event);
@@ -177,7 +181,7 @@ class Bot_builder {
     await this._load_commands();
 
     let rest = new REST({
-      version: "9"
+      version: "9",
     }).setToken(token);
 
     try {
@@ -185,7 +189,7 @@ class Bot_builder {
       await rest.put(
         Routes.applicationGuildCommands(this.bot.user.id, config.slash_guild),
         {
-          body: this.slash
+          body: this.slash,
         }
       );
 
@@ -204,11 +208,11 @@ class Bot_builder {
       //   process.stdout.write("\r" + P[x++]);
       //   x &= 3;
       // }, 250),
-      stop: function(params) {
+      stop: function (params) {
         // clearInterval(this._timer_interval);
 
         process.stdout.write("\rЗагрузка прошла успешно!\n");
-      }
+      },
     };
   }
 

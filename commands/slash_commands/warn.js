@@ -189,7 +189,12 @@ class Command extends Command_template {
         }
       }
 
-      await profile.add_warn({ warn_data: warn });
+      let result = await profile.add_warn({ warn_data: warn });
+
+      if (!result)
+        return this.msgFalseH(
+          "Произошла ошибка при выполнении команды. Обратитесь к loli_knight"
+        );
 
       this.msgH(`Успешно выдан варн участнику \`${member.user.tag}\`.`);
     } catch (error) {

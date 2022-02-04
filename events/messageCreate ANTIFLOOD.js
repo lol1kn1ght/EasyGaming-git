@@ -1,4 +1,4 @@
-module.exports = function(args, message) {
+module.exports = function (args, message) {
   class Event {
     constructor(args) {
       Object.assign(this, args);
@@ -23,26 +23,24 @@ module.exports = function(args, message) {
         let user_profile = new f.Profile(this.db, message.author.id);
 
         let report_data = {
-          user_id: Bot.bot.user.id,
-          report_author: Bot.bot.user,
-          data: {
+          user_id: message.author.id,
+          report_data: {
+            by: Bot.bot.id,
             type: "USER",
             reason: "Флуд сообщениями.",
             channel: message.channel,
-            targetId: message.author.id
           },
-          mongo: this.mongo
         };
 
-        f.warn_emitter.emit("report", report_data);
+        f.warn_emitter.report(report_data);
 
         let mute = {
           time: f.parse_duration("1h"),
           reason: "Флуд сообщениями",
           by: Bot.bot.user.id,
-          date: new Date().getTime()
+          date: new Date().getTime(),
         };
-        user_profile.mute({mute_data: mute});
+        user_profile.mute({ mute_data: mute });
 
         user.amount = 0;
         f.flood[message.author.id] = user;

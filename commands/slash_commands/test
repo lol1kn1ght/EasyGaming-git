@@ -1,5 +1,6 @@
-const { Command_template } = require("../../config/templates");
+const {Command_template} = require("../../config/templates");
 const Discord = require("discord.js");
+const {time} = require("@discordjs/builders");
 
 class Command extends Command_template {
   constructor(args, interaction) {
@@ -12,20 +13,16 @@ class Command extends Command_template {
       allowed_roles: [],
       slash: {
         name: "test",
-        description: "test",
-      },
+        description: "test"
+      }
     };
   }
 
   async execute() {
-    let invite_logs = [];
-
-    let logs = await this.interaction.guild.fetchAuditLogs({
-      type: 42,
-      limit: 10,
-    });
-
-    console.log(logs);
+    // let dm = await this.interaction.user.createDM();
+    let dm = this.interaction.user.dmChannel;
+    //1643665973000
+    console.log(time(1643665973000, "R"));
   }
 }
 

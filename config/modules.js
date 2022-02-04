@@ -26,7 +26,7 @@ module.exports = {
     let config = load_module("./config.json");
     return load_module(`../data/dialogues/${config.language}.js`);
   })(),
-  warn_emitter: load_module("./Warns_emitter.js")(),
+  warn_emitter: load_module("./Warns_emitter.js"),
   flood: {},
   test: 50,
 };
