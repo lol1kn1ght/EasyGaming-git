@@ -716,7 +716,7 @@ class Warn_emitter {
 
       let moderator = await this._get_member(by);
 
-      let guild_role = this.guild.roles.cache.get(id);
+      let guild_role = moderator.guild.roles.cache.get(id.map ? id[0] : id);
 
       let member_profile = new f.Profile(this.db, user_id);
       let member_data = await member_profile.fetch();
