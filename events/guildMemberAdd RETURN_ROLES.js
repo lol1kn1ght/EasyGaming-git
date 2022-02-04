@@ -65,23 +65,23 @@ module.exports = function (args, member) {
 
           let time;
 
-          if (marks_count < 1) time = f.parse_duration("30d");
-          if (marks_count === 1) time = f.parse_duration("365d");
-          if (marks_count > 1) time = 0;
+          // if (marks_count < 1)
+          time = f.parse_duration("30d");
+          // if (marks_count === 1) time = f.parse_duration("365d");
+          // if (marks_count > 1) time = 0;
 
           last_ban.marked = true;
 
           user.bans[last_ban_place] = last_ban;
 
-          f.warn_emitter.emit("time_role", {
+          f.warn_emitter.time_role({
             user_id: member.id,
-            data: {
+            time_role_data: {
               id: [this.config.half_of_ban],
               till: time === 0 ? 0 : new Date().getTime() + time,
               by: bot.user.id,
               time: time,
             },
-            mongo: this.mongo.db("gtaEZ"),
           });
 
           db.updateOne(

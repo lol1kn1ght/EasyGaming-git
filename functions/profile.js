@@ -46,11 +46,9 @@ class Profile {
     if (!args.warn_data) throw new Error("Данные варна не указаны.");
     if (!this._user_data?.login) this._user_data = await this._get_data();
 
-    f.warn_emitter.emit("warn", {
+    return f.warn_emitter.warn({
       user_id: this._user_id,
-      mongo: this.db,
-      data: args.warn_data,
-      message: args.message
+      warn_data: args.warn_data
     });
   }
 
@@ -64,11 +62,9 @@ class Profile {
     if (!args.mute_data) throw new Error("Данные варна не указаны.");
     if (!this._user_data?.login) this._user_data = await this._get_data();
 
-    f.warn_emitter.emit("mute", {
+    return f.warn_emitter.mute({
       user_id: this._user_id,
-      mongo: this.db,
-      data: args.mute_data,
-      message: args.message
+      mute_data: args.mute_data
     });
   }
 
@@ -82,11 +78,9 @@ class Profile {
     if (!args.unmute_data) throw new Error("Данные варна не указаны.");
     if (!this._user_data?.login) this._user_data = await this._get_data();
 
-    f.warn_emitter.emit("unmute", {
+    return f.warn_emitter.unmute({
       user_id: this._user_id,
-      mongo: this.db,
-      data: args.unmute_data,
-      message: args.message
+      unmute_data: args.unmute_data
     });
   }
 

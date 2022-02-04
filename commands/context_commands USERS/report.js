@@ -1,4 +1,4 @@
-const { Command_template } = require("../../config/templates");
+const {Command_template} = require("../../config/templates");
 const Discord = require("discord.js");
 
 class Command extends Command_template {
@@ -12,13 +12,14 @@ class Command extends Command_template {
       allowed_roles: [],
       slash: {
         name: "Пожаловаться",
-        type: 2,
-      },
+        type: 2
+      }
     };
   }
 
   async execute() {
     try {
+      console.log("USERAIBAB");
       if (
         !this.interaction.member
           .permissionsIn(this.interaction.channel)
@@ -30,15 +31,15 @@ class Command extends Command_template {
         `Укажите причину репорта (У вас есть \`60 секунд\`).\n\n\`Если есть вложения в виде скриншотов/видео - указывайте ссылку на них или прикрепите к сообщению.\``
       );
 
-      let filter = (msg) => msg.author.id === this.interaction.user.id;
+      let filter = msg => msg.author.id === this.interaction.user.id;
       let reason_message = await this.interaction.channel
         .awaitMessages({
           filter,
           max: 1,
           time: 60000,
-          errors: ["time"],
+          errors: ["time"]
         })
-        .catch((e) => undefined);
+        .catch(e => undefined);
 
       if (!reason_message?.first())
         return this.msgFalseH("Вы не указали причину репорта.");
@@ -48,18 +49,13 @@ class Command extends Command_template {
       reason_message.first().delete();
 
       let report_data = {
-        user_id: this.interaction.member.id,
-        report_author: this.interaction.member,
-        data: {
-          type: "USER",
-          reason: reason,
-          channel: this.interaction.channel,
-          targetId: this.interaction.targetId,
-          attachments: reason_message.first()?.attachments,
-        },
-        mongo: this.mongo,
+        type: "USER",
+        reason: reason,
+        channel: this.interaction.channel,
+        attachments: reason_message.first()?.attachments,
+        by: this.interaction.member.id
       };
-      f.warn_emitter.emit("report", report_data);
+      f.warn_emitter.report({user_id: this.interaction.targetId, report_data});
     } catch (error) {
       console.log(
         `Произошла ошибка при исполнении контекст-сообщение команды ${this.interaction.commandName}`

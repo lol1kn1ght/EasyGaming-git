@@ -125,6 +125,7 @@ class Command extends Command_template {
           );
           if (await_ask && await_ask.customId === "accept") {
             let bans = profile_data.bans || [];
+            console.log("лять");
 
             time = f.parse_duration("365d");
 
@@ -135,13 +136,27 @@ class Command extends Command_template {
               date: new Date().getTime(),
             };
 
-            f.warn_emitter.emit("ban", {
-              guild: this.interaction.guild,
+            let result = await f.warn_emitter.ban({
               user_id: member?.id || member_id,
-              user: member,
-              mongo: this.db,
-              data: ban,
+              ban_data: ban,
             });
+
+            if (result === null) {
+              this.msgFalseH(
+                "Я не могу забанить этого участника. Возможно у меня недостаточно прав или этого участника не существует."
+              );
+
+              return;
+            }
+
+            if (result === false) {
+              this.msgFalseH(
+                "При выполнении команды произошла ошибка. Обратитесь к loli_knight"
+              );
+
+              return;
+            }
+
             this.msgH(
               `Выдана блокировка участнику \`${
                 member?.user?.tag || member_id
@@ -160,13 +175,26 @@ class Command extends Command_template {
         date: new Date().getTime(),
       };
 
-      f.warn_emitter.emit("ban", {
-        guild: this.interaction.guild,
+      let result = await f.warn_emitter.ban({
         user_id: member?.id || member_id,
-        user: member,
-        mongo: this.db,
-        data: ban,
+        ban_data: ban,
       });
+
+      if (result === null) {
+        this.msgFalseH(
+          "Я не могу забанить этого участника. Возможно у меня недостаточно прав или этого участника не существует."
+        );
+
+        return;
+      }
+
+      if (result === false) {
+        this.msgFalseH(
+          "При выполнении команды произошла ошибка. Обратитесь к loli_knight"
+        );
+
+        return;
+      }
       this.msgH(
         `Успешно выдан Бан участнику \`${
           member?.user?.tag || member_id

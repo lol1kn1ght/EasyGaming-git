@@ -33,26 +33,16 @@ module.exports = function (args) {
 
       async function next_user() {
         let user = users[current_user];
-
+        console.log("1");
         if (!user) return;
+        console.log("2");
 
         if (user.till > new Date().getTime()) {
           current_user++;
           next_user();
           return;
         }
-
-        let unbanned_user = await reports_channel.guild.members
-          .unban(
-            user.login,
-            `Разбан от ${Bot.bot.user.tag} ID: ${Bot.bot.user.id}: Время бана истекло.`
-          )
-          .catch((e) => undefined);
-
-        if (unbanned_user === undefined) {
-          db.collection("banneds").deleteOne({ login: user.login });
-          return;
-        }
+        console.log("3");
 
         let unban = {
           reason: "Время бана истекло.",
@@ -60,13 +50,14 @@ module.exports = function (args) {
           date: new Date().getTime(),
         };
 
-        f.warn_emitter.emit("unban", {
-          unbanned_user: unbanned_user,
+        let result = await f.warn_emitter.unban({
           user_id: user.login,
-          mongo: db,
-          data: unban,
+          unban_data: unban,
         });
 
+        if (result) {
+          db.collection("banneds").deleteOne({ login: user.login });
+        }
         current_user++;
         next_user();
       }

@@ -7,6 +7,8 @@ module.exports = function(args) {
     async execute() {
       console.log(`\n${Bot.bot.user.tag} Запущен успешно.`);
 
+      return;
+
       this.bot.channels.cache.get("432890572269813760").send("Запустился");
 
       const fs = require("fs");

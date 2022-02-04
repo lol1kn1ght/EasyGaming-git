@@ -1,5 +1,6 @@
-const {Command_template} = require("../../config/templates");
+const { Command_template } = require("../../config/templates");
 const Discord = require("discord.js");
+const { realpathSync } = require("fs");
 
 class Command extends Command_template {
   constructor(args, interaction) {
@@ -19,7 +20,7 @@ class Command extends Command_template {
 
     this.cooldown = {
       till: 0,
-      count: 1
+      count: 1,
     };
 
     this.prev_page = new Discord.MessageButton({
@@ -27,14 +28,14 @@ class Command extends Command_template {
       label: "Назад",
       customId: "prev_page",
       style: 1,
-      disabled: true
+      disabled: true,
     });
     this.next_page = new Discord.MessageButton({
       type: "BUTTON",
       label: "Вперед",
       customId: "next_page",
       style: 1,
-      disabled: false
+      disabled: false,
     });
 
     this.stop_button = new Discord.MessageButton({
@@ -42,7 +43,7 @@ class Command extends Command_template {
       label: "Закрыть",
       customId: "close_page",
       style: 2,
-      disabled: false
+      disabled: false,
     });
 
     this.options = {
@@ -58,35 +59,36 @@ class Command extends Command_template {
             name: "упоминание",
             description: "ЛИБО Упоминание участника",
             type: 6,
-            required: false
+            required: false,
           },
           {
             name: "айди",
             description: "ЛИБО Айди участника",
             type: 3,
-            required: false
-          }
-        ]
-      }
+            required: false,
+          },
+        ],
+      },
     };
   }
 
   async execute() {
     try {
-      let member = this.command_args.filter(arg => arg.name === "упоминание")[0]
-        ?.member;
+      let member = this.command_args.filter(
+        (arg) => arg.name === "упоминание"
+      )[0]?.member;
 
       let member_id = member?.id;
 
       if (!member) {
-        member_id = this.command_args.filter(arg => arg.name === "айди")[0]
+        member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
           ?.value;
 
         if (!member_id) return this.msgFalseH("Вы не указали участника.");
 
         member = await this.interaction.guild.members
           .fetch(member_id)
-          .catch(e => undefined);
+          .catch((e) => undefined);
       }
 
       if (!member_id) return this.msgFalseH("Вы не указали участника.");
@@ -120,7 +122,7 @@ class Command extends Command_template {
     try {
       let users_db = this.db.collection("users");
       let user_data = await users_db.findOne({
-        login: this.member.id
+        login: this.member.id,
       });
 
       this.warns = user_data?.warns || [];
@@ -160,12 +162,13 @@ class Command extends Command_template {
       for (let warn of warns) {
         let moderator = await this.interaction.guild.members
           .fetch(warn.by)
-          .catch(err => undefined);
+          .catch((err) => undefined);
 
         let warn_date = new Date(warn.date);
 
-        let warn_text = `\`\`\`js\n${position}. Модератор: ${moderator?.user
-          ?.tag || "Пользователь#0000"} ID: ${warn.by}\nПричина: ${
+        let warn_text = `\`\`\`js\n${position}. Модератор: ${
+          moderator?.user?.tag || "Пользователь#0000"
+        } ID: ${warn.by}\nПричина: ${
           warn.reason
         }\nДата: ${warn_date.toLocaleDateString()} ${warn_date.toLocaleTimeString()}\`\`\`\n\n`;
 
@@ -175,7 +178,7 @@ class Command extends Command_template {
         let warn_menu_button = {
           label: `Удалить предупреждение ${position}`,
           description: `Удалить предупреждение с номером ${position}`,
-          value: `delete-warn_${total_warn_pos++}`
+          value: `delete-warn_${total_warn_pos++}`,
         };
 
         if (warns_menu_button[current_page])
@@ -196,7 +199,7 @@ class Command extends Command_template {
       for (let i = 0; i < warns_pages.length; i++) {
         warns_menu_pages.push({
           page_text: warns_pages[i],
-          menu_buttons: warns_menu_button[i]
+          menu_buttons: warns_menu_button[i],
         });
       }
 
@@ -230,14 +233,13 @@ class Command extends Command_template {
       for (let mute of mutes) {
         let moderator = await this.interaction.guild.members
           .fetch(mute.by)
-          .catch(err => undefined);
+          .catch((err) => undefined);
 
         let mute_date = new Date(mute.date);
 
-        let mute_text = `\`\`\`js\n${position}. Модератор: ${moderator?.user
-          ?.tag || "Пользователь#0000"} ID: ${mute.by}\nПричина: ${
-          mute.reason
-        }\nНа сколько выдан: ${f.time(
+        let mute_text = `\`\`\`js\n${position}. Модератор: ${
+          moderator?.user?.tag || "Пользователь#0000"
+        } ID: ${mute.by}\nПричина: ${mute.reason}\nНа сколько выдан: ${f.time(
           mute.time
         )}\nДата: ${mute_date.toLocaleDateString()} ${mute_date.toLocaleTimeString()}\`\`\`\n\n`;
 
@@ -247,7 +249,7 @@ class Command extends Command_template {
         let mute_menu_button = {
           label: `Удалить мьют ${position}`,
           description: `Удалить мьют с номером ${position}`,
-          value: `delete-mute_${total_mute_pos++}`
+          value: `delete-mute_${total_mute_pos++}`,
         };
 
         if (mutes_menu_button[current_page])
@@ -268,7 +270,7 @@ class Command extends Command_template {
       for (let i = 0; i < mutes_pages.length; i++) {
         mutes_menu_pages.push({
           page_text: mutes_pages[i],
-          menu_buttons: mutes_menu_button[i]
+          menu_buttons: mutes_menu_button[i],
         });
       }
 
@@ -288,7 +290,7 @@ class Command extends Command_template {
           `Данный участник имеет:\n :warning: ${this.warns.length} предупреждений\n :mute: ${this.mutes.length} мьютов\n\nС помощью кнопок ниже выберите что вы хотите снять:`
         )
         .setColor(f.config.colorEmbed)
-        .setThumbnail(this.member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(this.member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp();
 
       let warns_button = new Discord.MessageButton({
@@ -296,7 +298,7 @@ class Command extends Command_template {
         label: "⚠️ Предупреждения",
         customId: "toggle_warns",
         style: 1,
-        disabled: false
+        disabled: false,
       });
 
       let mutes_button = new Discord.MessageButton({
@@ -304,7 +306,7 @@ class Command extends Command_template {
         label: "🔇 Мьюты",
         customId: "toggle_mutes",
         style: 1,
-        disabled: false
+        disabled: false,
       });
 
       if (!this.default_buttons()[0])
@@ -319,14 +321,14 @@ class Command extends Command_template {
       let menu_message = await this.interaction.reply({
         embeds: [panel_embed],
         components: [components_row],
-        fetchReply: true
+        fetchReply: true,
       });
 
       this.menu_message = menu_message;
 
       let collector = menu_message.createMessageComponentCollector({
-        filter: button => button.user.id === this.interaction.user.id,
-        time: 180000
+        filter: (button) => button.user.id === this.interaction.user.id,
+        time: 180000,
       });
 
       this.collector = collector;
@@ -338,7 +340,7 @@ class Command extends Command_template {
   }
 
   listen_collector() {
-    this.collector.on("collect", async interaction => {
+    this.collector.on("collect", async (interaction) => {
       try {
         if (interaction.isButton()) {
           let button = interaction;
@@ -346,7 +348,7 @@ class Command extends Command_template {
           switch (button.customId) {
             case "toggle_warns":
               if (this.curr_category === "warns") {
-                button.update({embeds: [button.message.embeds]});
+                button.update({ embeds: [button.message.embeds] });
                 return;
               }
 
@@ -355,7 +357,7 @@ class Command extends Command_template {
 
             case "toggle_mutes":
               if (this.curr_category === "mutes") {
-                button.update({embeds: [button.message.embeds]});
+                button.update({ embeds: [button.message.embeds] });
                 return;
               }
 
@@ -385,22 +387,26 @@ class Command extends Command_template {
             case "delete-warn":
               let removed_warn = this.warns.splice(id, 1);
 
-              this.update_data({warns: this.warns});
+              this.update_data({ warns: this.warns });
 
-              f.warn_emitter.emit("warn_remove", {
+              let warn_remove_result = await f.warn_emitter.warn_remove({
                 user_id: this.member?.id || this.member_id,
-                mongo: this.db,
-                data: {
+                warn_remove_data: {
                   by: this.interaction.user.id,
-                  warn_data: removed_warn[0]
-                }
+                  warn_data: removed_warn[0],
+                },
               });
+
+              if (!warn_remove_result)
+                return select.reply(
+                  "При удалении варна возникла ошибка, обратитесь к loli_knight"
+                );
 
               if (this.mutes.length === 0 && this.warns.length === 0) {
                 select.update({
                   embeds: [],
                   components: [],
-                  content: `Участник ${this.member.user.tag} не имеет нарушений`
+                  content: `Участник ${this.member.user.tag} не имеет нарушений`,
                 });
 
                 return;
@@ -416,22 +422,25 @@ class Command extends Command_template {
             case "delete-mute":
               let removed_mute = this.mutes.splice(id, 1);
 
-              f.warn_emitter.emit("mute_remove", {
+              let mute_remove_result = await f.warn_emitter.mute_remove({
                 user_id: this.member?.id || this.member_id,
-                mongo: this.db,
-                data: {
+                mute_remove_data: {
                   by: this.interaction.user.id,
-                  mute_data: removed_mute[0]
-                }
+                  mute_data: removed_mute[0],
+                },
               });
 
-              this.update_data({mutes: this.mutes});
+              if (!mute_remove_result)
+                return select.reply(
+                  "При удалении мьюта произошла ошибка. Обратитесь к loli_knight"
+                );
+              this.update_data({ mutes: this.mutes });
 
               if (this.mutes.length === 0 && this.warns.length === 0) {
                 select.update({
                   embeds: [],
                   components: [],
-                  content: `Участник ${this.member.user.tag} не имеет нарушений`
+                  content: `Участник ${this.member.user.tag} не имеет нарушений`,
                 });
 
                 return;
@@ -474,7 +483,7 @@ class Command extends Command_template {
       let new_buttons = [
         this.prev_page,
         this.default_buttons(),
-        this.next_page
+        this.next_page,
       ];
       let new_buttons_row = new Discord.MessageActionRow().addComponents(
         ...new_buttons
@@ -500,7 +509,7 @@ class Command extends Command_template {
 
       button.update({
         embeds: [this.current_embed],
-        components: [new_buttons_row, new_menu_row]
+        components: [new_buttons_row, new_menu_row],
       });
     } catch (err) {
       f.handle_error(err, `/-команда ${this.options.name}`);
@@ -523,7 +532,7 @@ class Command extends Command_template {
       let new_buttons = [
         this.prev_page,
         this.default_buttons(),
-        this.next_page
+        this.next_page,
       ];
       let new_buttons_row = new Discord.MessageActionRow().addComponents(
         ...new_buttons
@@ -548,7 +557,7 @@ class Command extends Command_template {
         );
       button.update({
         embeds: [this.current_embed],
-        components: [new_buttons_row, new_menu_row]
+        components: [new_buttons_row, new_menu_row],
       });
     } catch (err) {
       f.handle_error(err, `/-команда ${this.options.name}`);
@@ -585,7 +594,7 @@ class Command extends Command_template {
       let new_embed = new Discord.MessageEmbed()
         .setTitle(`Снять мьюты с ${this.member.user.tag}:`)
         .setDescription(current_mutes_page[this.current_page].page_text)
-        .setThumbnail(this.member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(this.member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
         .setColor(f.config.colorEmbed)
         .setFooter(
@@ -596,7 +605,7 @@ class Command extends Command_template {
 
       button.update({
         embeds: [new_embed],
-        components: [new_buttons, menu_row]
+        components: [new_buttons, menu_row],
       });
     } catch (err) {
       f.handle_error(err, `/-команда ${this.options.name}`);
@@ -633,7 +642,7 @@ class Command extends Command_template {
       let new_embed = new Discord.MessageEmbed()
         .setTitle(`Снять предупреждения с ${this.member.user.tag}:`)
         .setDescription(current_warn_page[this.current_page].page_text)
-        .setThumbnail(this.member.user.displayAvatarURL({dynamic: true}))
+        .setThumbnail(this.member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp()
         .setColor(f.config.colorEmbed)
         .setFooter(
@@ -644,7 +653,7 @@ class Command extends Command_template {
 
       button.update({
         embeds: [new_embed],
-        components: [new_buttons, menu_row]
+        components: [new_buttons, menu_row],
       });
     } catch (err) {
       f.handle_error(err, `/-команда ${this.options.name}`);
@@ -655,10 +664,10 @@ class Command extends Command_template {
 
     users_db.updateOne(
       {
-        login: this.member.id
+        login: this.member.id,
       },
       {
-        $set: new_data
+        $set: new_data,
       }
     );
   }
@@ -673,7 +682,7 @@ class Command extends Command_template {
           label: "⚠️ Предупреждения",
           customId: "toggle_warns",
           style: 1,
-          disabled: false
+          disabled: false,
         })
       );
     }
@@ -685,7 +694,7 @@ class Command extends Command_template {
           label: "🔇 Мьюты",
           customId: "toggle_mutes",
           style: 1,
-          disabled: false
+          disabled: false,
         })
       );
     }

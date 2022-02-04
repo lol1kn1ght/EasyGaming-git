@@ -61,15 +61,10 @@ class Command extends Command_template {
       return this.msgFalseH("Вы указали неверного участника для репорта.");
 
     let report_data = {
-      user_id: this.interaction.member.id,
-      report_author: this.interaction.member,
-      data: {
-        type: "USER",
-        reason: reason,
-        channel: this.interaction.channel,
-        targetId: member?.id || member_id,
-      },
-      mongo: this.mongo,
+      by: this.interaction.member,
+      type: "USER",
+      reason: reason,
+      channel: this.interaction.channel,
     };
 
     if (!reason) {
@@ -94,12 +89,15 @@ class Command extends Command_template {
 
       reason_message.first().delete();
 
-      report_data.data.attachments = reason_message.first()?.attachments;
+      report_data.attachments = reason_message.first()?.attachments;
     }
 
-    report_data.data.reason = reason;
+    report_data.reason = reason;
 
-    f.warn_emitter.emit("report", report_data);
+    f.warn_emitter.report({
+      user_id: member?.id || member_id,
+      report_data,
+    });
 
     this.msgH(
       `Вы успешно отправили репорт на участника \`${member.user.tag}\``

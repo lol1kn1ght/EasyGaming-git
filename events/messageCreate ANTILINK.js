@@ -14,7 +14,7 @@ module.exports = function (args, message) {
         return;
 
       let links_regex =
-        /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5})(:[0-9]{1,5})?(\/.*)/;
+        /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?([a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5})(:[0-9]{1,5})?(\/.*)?/;
 
       if (!links_regex.test(message.content)) return;
 
@@ -43,19 +43,19 @@ module.exports = function (args, message) {
 
       f.anti_link_muted[message.author.id] = true;
       let report_data = {
-        user_id: Bot.bot.user.id,
-        report_author: Bot.bot.user,
-        data: {
+        user_id: message.author.id,
+
+        report_data: {
           type: "MESSAGE",
           reason: `Спам-ссылка: ${domain}`,
           channel: message.channel,
-          targetId: message.id,
+          by: Bot.bot.user.id,
           attachments: message.attachments,
+          message_id: message.id,
         },
-        mongo: this.mongo,
       };
 
-      f.warn_emitter.emit("report", report_data);
+      f.warn_emitter.report(report_data);
 
       let mute = {
         time: f.parse_duration("1h"),

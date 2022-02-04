@@ -54,7 +54,7 @@ module.exports = function (args) {
         await profile.unmute({
           unmute_data: {
             reason: "Время наказания истекло.",
-            by: Bot.bot,
+            by: Bot.bot.user.id,
           },
         });
 

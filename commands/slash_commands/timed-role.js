@@ -115,21 +115,25 @@ class Command extends Command_template {
     if (member?.user.bot)
       return this.msgFalseH("Вы указали неверного участника для выдачи роли.");
 
-    f.warn_emitter.emit("time_role", {
+    let result = await f.warn_emitter.time_role({
       user_id: member.id,
-      data: {
-        id: [times[role_tag].id],
+      time_role_data: {
+        id: times[role_tag].id,
         till: new Date().getTime() + time,
         time: time,
         by: this.interaction.member.id,
       },
-      mongo: this.db,
     });
+
+    if (!result)
+      return this.msgFalse(
+        "При выполнении команды возникла ошибка. Обратитесь к loli_knight"
+      );
 
     this.msgH(
       `Вы успешно выдали роль ${this.interaction.guild.roles.cache.get(
         times[role_tag].id
-      )} участнику \`${member.user.tag}\` на срок \`${f.time(time)}\``
+      )} участнику ${member} на срок \`${f.time(time)}\``
     );
   }
 }

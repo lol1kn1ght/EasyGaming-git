@@ -61,7 +61,7 @@ module.exports = function (args) {
       collector.on("collect", async (button) => {
         if (!button.isButton()) return;
         let pages_count = this.pages.length - 1;
-
+        button.deferUpdate();
         switch (button.customId) {
           case "next_page":
             {
