@@ -258,7 +258,12 @@ class Warn_emitter {
       if (!user_id) throw new Error("Не указан айди участника.");
       if (!ban_data) throw new Error("Не указана информация о бане.");
 
-      if (!ban_data.reason || !ban_data.by || !ban_data.time || !ban_data.date)
+      if (
+        !ban_data.reason ||
+        !ban_data.by ||
+        ban_data.time === undefined ||
+        !ban_data.date
+      )
         throw new Error("Указана не полная информация о бане.");
 
       let member = await this._get_member(user_id);
