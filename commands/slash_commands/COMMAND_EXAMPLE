@@ -1,4 +1,4 @@
-const { Command_template } = require("../config/templates");
+const { Command_template } = require("../../config/templates");
 const Discord = require("discord.js");
 
 class Command extends Command_template {
@@ -13,13 +13,11 @@ class Command extends Command_template {
       slash: {
         name: "COMMAND_NAME",
         description: "COMMAND_DESCRIPTION",
-      }
+      },
     };
   }
 
-  async execute() {
- 
-  }
+  async execute() {}
 }
 
 module.exports = Command;

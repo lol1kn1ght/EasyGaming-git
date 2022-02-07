@@ -22,6 +22,7 @@ module.exports = {
   anti_link_muted: {},
   muted_members: {},
   authoirse_members_cooldown: undefined,
+
   dialogues: (() => {
     let config = load_module("./config.json");
     return load_module(`../data/dialogues/${config.language}.js`);
