@@ -33,16 +33,14 @@ module.exports = function (args) {
 
       async function next_user() {
         let user = users[current_user];
-        console.log("1");
+
         if (!user) return;
-        console.log("2");
 
         if (user.till > new Date().getTime()) {
           current_user++;
           next_user();
           return;
         }
-        console.log("3");
 
         let unban = {
           reason: "Время бана истекло.",

@@ -112,7 +112,7 @@ class Command extends Command_template {
 
     const repMsg = new Discord.MessageEmbed()
       .setAuthor(
-        "❄ " + member.user.tag + " ❄",
+        member.user.tag,
         member.user.displayAvatarURL({ dynamic: true })
       )
       .setColor("#EAECEA") // #111111

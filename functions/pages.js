@@ -49,19 +49,19 @@ module.exports = function (args) {
     async collectComponents() {
       let menu = this.menu;
 
-      let filter = (interaction) => {
-        return interaction.message.id && filter(interaction);
+      let _filter = (interaction) => {
+        return filter(interaction);
       };
 
       let collector = this.menu.createMessageComponentCollector({
-        filter,
+        _filter,
         time: 180000,
       });
 
       collector.on("collect", async (button) => {
         if (!button.isButton()) return;
         let pages_count = this.pages.length - 1;
-        button.deferUpdate();
+
         switch (button.customId) {
           case "next_page":
             {
