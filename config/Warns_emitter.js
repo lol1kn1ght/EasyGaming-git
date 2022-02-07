@@ -320,13 +320,11 @@ class Warn_emitter {
 
       member_profile.update_data({ bans });
 
-      let member_avatar_url = member
-        ? member.user.displayAvatarURL({
-            dynamic: true,
-          })
-        : banned_member?.displayAvatarURL({
-            dynamic: true,
-          });
+      let member_avatar_url;
+
+      if (member && member?.user?.avatarURL)
+        member_avatar_url = member.user.avatarURL();
+      if (member && member?.avatarURL) member_avatar_url = member.avatarURL();
 
       let ban_logs = new Discord.MessageEmbed()
         .setDescription(":hammer: Пользователь заблокирован")
