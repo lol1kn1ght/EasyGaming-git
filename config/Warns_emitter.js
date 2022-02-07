@@ -81,13 +81,16 @@ class Warn_emitter {
           } catch (err) {
             f.handle_error(
               err,
-              `[Warns_emitter] emit in ListenerEmit: ${event_name}`
+              `[Warns_emitter] emit in ListenerEmit: ${event_name}`,
+              {
+                emit_data: args,
+              }
             );
           }
         }
       }
     } catch (err) {
-      f.handle_error(err, "[Warns_emitter] method emit");
+      f.handle_error(err, "[Warns_emitter] method emit", { emit_data: args });
     }
   }
 
@@ -142,7 +145,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method warn", {
-        emit_data: warn_data,
+        emit_data: { user_id, warn_data },
       });
 
       return false;
@@ -240,13 +243,15 @@ class Warn_emitter {
           }\``
         )
         .catch((e) => {
-          f.handle_error(e, "[Warns_emitter] member.send in method mute");
+          f.handle_error(e, "[Warns_emitter] member.send in method mute", {
+            emit_data: { user_id, mute_data },
+          });
         });
 
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method mute", {
-        emit_data: mute_data,
+        emit_data: { user_id, mute_data },
       });
 
       return false;
@@ -285,7 +290,7 @@ class Warn_emitter {
           )
           .catch((err) => {
             f.handle_error(err, "[Warns_emitter] member.send in method ban", {
-              emit_data: ban_data,
+              emit_data: { user_id, ban_data },
             });
           });
       }
@@ -355,7 +360,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method ban", {
-        emit_data: ban_data,
+        emit_data: { user_id, ban_data },
       });
 
       return false;
@@ -381,7 +386,7 @@ class Warn_emitter {
         )
         .catch((err) => {
           f.handle_error(err, "[Warns_emitter] member.send in method kick", {
-            emit_data: kick_data,
+            emit_data: { user_id, kick_data },
           });
         });
 
@@ -392,7 +397,7 @@ class Warn_emitter {
         )
         .catch((err) => {
           f.handle_error(err, "[Warns_emitter] members.kick in method kick", {
-            emit_data: kick_data,
+            emit_data: { user_id, kick_data },
           });
 
           return null;
@@ -425,7 +430,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method kick", {
-        emit_data: kick_data,
+        emit_data: { user_id, kick_data },
       });
 
       return;
@@ -462,7 +467,7 @@ class Warn_emitter {
           err,
           "[Warns_emitter] member.roles.add in method unmute",
           {
-            emit_data: { roles: muted.roles, unmute_data },
+            emit_data: { user_id, roles: muted.roles, unmute_data },
           }
         );
       });
@@ -516,7 +521,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method unmute", {
-        emit_data: unmute_data,
+        emit_data: { user_id, unmute_data },
       });
 
       return false;
@@ -600,7 +605,7 @@ class Warn_emitter {
           "Осутствует канал для репортов.",
           "[Warns_emitter] method report",
           {
-            emit_data: report_data,
+            emit_data: { user_id, report_data },
           }
         );
       if (type === "USER") {
@@ -737,7 +742,7 @@ class Warn_emitter {
             err,
             "[Warns_emitter] member.roles.add in method time_role",
             {
-              emit_data: time_role_data,
+              emit_data: { user_id, time_role_data },
             }
           );
         });
@@ -774,7 +779,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method role", {
-        emit_data: time_role_data,
+        emit_data: { user_id, time_role_data },
       });
 
       return false;
@@ -812,7 +817,9 @@ class Warn_emitter {
       await member.roles
         .remove(roles_to_remove.map((role) => role.id))
         .catch((err) => {
-          f.handle_error(err, "[Warns_emitter] member.roles.remove");
+          f.handle_error(err, "[Warns_emitter] member.roles.remove", {
+            emit_data: { user_id, time_roles_data },
+          });
         });
 
       member_profile.update_data({ timedRoles: new_roles });
@@ -846,7 +853,7 @@ class Warn_emitter {
             err,
             "[Warns_emitter] member.send in method time_role_remove",
             {
-              emit_data: time_roles_data,
+              emit_data: { user_id, time_roles_data },
             }
           );
         });
@@ -856,7 +863,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method time_role_remove", {
-        emit_data: time_roles_data,
+        emit_data: { user_id, time_roles_data },
       });
 
       return false;
@@ -910,7 +917,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] warn_remove", {
-        emit_data: warn_remove_data,
+        emit_data: { user_id, warn_remove_data },
       });
 
       return false;
@@ -964,7 +971,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method mute_remove", {
-        emit_data: mute_remove_data,
+        emit_data: { user_id, mute_remove_data },
       });
 
       return false;
@@ -998,7 +1005,7 @@ class Warn_emitter {
 
       let result = await member.roles.add(roles_to_add).catch((err) => {
         f.handle_error(err, "[Warns_emitter] member.roles.add in method role", {
-          emit_data: roles_to_add,
+          emit_data: { user_id, roles_to_add },
         });
 
         return false;
@@ -1031,7 +1038,7 @@ class Warn_emitter {
         )
         .catch((err) => {
           f.handle_error(err, "[Warns_emitter] member.send in method role", {
-            emit_data: { user_id },
+            emit_data: { user_id, role_data },
           });
         });
       this._send_logs(role_embed);
@@ -1039,7 +1046,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method role", {
-        emit_data: role_data,
+        emit_data: { user_id, role_data },
       });
 
       return false;
@@ -1076,7 +1083,7 @@ class Warn_emitter {
           err,
           "[Warns_emitter] member.roles.remove in method role_remove",
           {
-            emit_data: role_remove_data,
+            emit_data: { user_id, role_remove_data },
           }
         );
 
@@ -1112,7 +1119,7 @@ class Warn_emitter {
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method role_remove", {
-        emit_data: role_remove_data,
+        emit_data: { user_id, role_remove_data },
       });
 
       return false;
