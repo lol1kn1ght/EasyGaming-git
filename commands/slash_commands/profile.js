@@ -109,9 +109,9 @@ class Command extends Command_template {
     let others = `\`Текущее\`: ${profile_data.bans?.length || "0"} 🔨   |    ${
       profile_data.mutes?.length || "0"
     } 🔇   |   ${profile_data.warns?.length || "0"} ⚠️\n\`Архив\`: ${
-      member_archieve?.bans.length || 0
+      member_archieve?.bans?.length || 0
     } 🔨  | ${member_archieve?.mutes?.length || 0} 🔇  | ${
-      member_archieve?.warns?.length
+      member_archieve?.warns?.length || 0
     } ⚠️`;
 
     let joined_date = new Date(member.joinedTimestamp);
