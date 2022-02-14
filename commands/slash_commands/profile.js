@@ -104,9 +104,15 @@ class Command extends Command_template {
 
     let eventswins = Number(event_role) || 0;
 
-    let others = `${profile_data.bans?.length || "0"} 🔨   |    ${
+    let member_archieve = profile_data.archieve || {};
+
+    let others = `\`Текущее\`: ${profile_data.bans?.length || "0"} 🔨   |    ${
       profile_data.mutes?.length || "0"
-    } 🔇   |   ${profile_data.warns?.length || "0"} ⚠️`;
+    } 🔇   |   ${profile_data.warns?.length || "0"} ⚠️\n\`Архив\`: ${
+      member_archieve?.bans.length || 0
+    } 🔨  | ${member_archieve?.mutes?.length || 0} 🔇  | ${
+      member_archieve?.warns?.length
+    } ⚠️`;
 
     let joined_date = new Date(member.joinedTimestamp);
 

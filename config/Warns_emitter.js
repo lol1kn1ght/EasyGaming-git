@@ -317,13 +317,25 @@ class Warn_emitter {
       let member_profile = new f.Profile(this.db, user_id);
       let member_data = await member_profile.fetch();
 
-      let bans = member_data.bans || [];
+      let member_archieve = member_data?.archieve || {};
+
+      let archieve_bans = member_archieve.bans || [];
+      let archieve_mutes = member_archieve.mutes || [];
+      let archieve_warns = member_archieve.warns || [];
+
+      let { bans = [], mutes = [], warns = [] } = member_data;
 
       bans.push(ban_data);
 
+      let archieve = {
+        bans: archieve_bans.concat(bans),
+        mutes: archieve_mutes.concat(mutes),
+        warns: archieve_warns.concat(warns),
+      };
+
       let moderator = await this._get_member(ban_data.by);
 
-      member_profile.update_data({ bans });
+      member_profile.update_data({ bans: [], mutes: [], warns: [], archieve });
 
       let member_avatar_url;
 
