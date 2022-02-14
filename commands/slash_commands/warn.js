@@ -134,7 +134,7 @@ class Command extends Command_template {
           }
         }
 
-        if (profile_data.mutes?.length % 2 === 0) {
+        if (profile_data.mutes[0] && profile_data.mutes?.length % 2 === 0) {
           let await_ask = await this.ask(
             `Пользователь \`${member.user.tag}\` имеет более 2-х последних дисциплинарных наказаний, выдать блокировку?`
           );
