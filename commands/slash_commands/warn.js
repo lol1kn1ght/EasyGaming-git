@@ -147,19 +147,6 @@ class Command extends Command_template {
             if (bans.length >= 1) time = f.parse_duration("365d");
 
             if (!time) time = f.parse_duration("30d");
-            let till = new Date().getTime() + time;
-
-            await member.send(`:hammer: Вам была выдана блокировка на сервере \`${
-              this.interaction.guild.name
-            }\`. На срок: ${
-              time === 0
-                ? "Навсегда"
-                : `${f.time(
-                    time,
-                    "R"
-                  )}  (\`\`${till.toLocaleDateString()} ${till.toLocaleTimeString()} по МСК\`\`)\n\nСсылка для возвращения после разбана: https://discord.gg/6X8WcBfCFQ`
-            }
-             \nПо причине: ${reason}\n\nЕсли хотите оспорить бан - https://discord.gg/9FrrHqYe6C`);
 
             let ban = {
               time: time,
@@ -171,13 +158,27 @@ class Command extends Command_template {
               date: new Date().getTime(),
             };
 
-            f.warn_emitter.emit("ban", {
-              user_id: member.id,
-              user: member,
-              mongo: this.db,
-              data: ban,
-              guild: this.interaction.guild,
+            let result = await f.warn_emitter.ban({
+              user_id: member?.id || member_id,
+              ban_data: ban,
             });
+
+            if (result === null) {
+              this.msgFalseH(
+                "Я не могу забанить этого участника. Возможно у меня недостаточно прав или этого участника не существует."
+              );
+
+              return;
+            }
+
+            if (result === false) {
+              this.msgFalseH(
+                "При выполнении команды произошла ошибка. Обратитесь к loli_knight"
+              );
+
+              return;
+            }
+
             this.msgH(
               `Выдана блокировка участнику \`${member.user.tag}\` на \`${f.time(
                 time
