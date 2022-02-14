@@ -106,35 +106,21 @@ class Command extends Command_template {
       let profile_data = await profile.fetch();
 
       let warns = profile_data.warns || [];
+      let mutes = profile_data.mutes || [];
 
-      if (warns[0] && warns.length % 3 === 0) {
-        if (profile_data.mutes?.length % 2 != 0) {
-          let await_ask = await this.ask(
-            `Пользователь \`${member.user.tag}\` имеет более 3-х последних варнов, выдать дисциплинарное наказание?`
-          );
+      let result = await profile.add_warn({ warn_data: warn });
 
-          if (await_ask && await_ask.customId === "accept") {
-            let time = f.parse_duration("24h");
+      if (!result)
+        return this.msgFalseH(
+          "Произошла ошибка при выполнении команды. Обратитесь к loli_knight"
+        );
 
-            await profile.mute({
-              mute_data: {
-                time: time,
-                reason: "Пользователь имеет 3 и более предупреждений.",
-                by: this.interaction.member.id,
-                date: new Date().getTime(),
-              },
-            });
-            this.msgH(
-              `Выдано дисциплинарное наказание участнику \`${
-                member.user.tag
-              }\` на \`${f.time(time)}\`.`
-            );
+      this.msgH(`Успешно выдан варн участнику \`${member.user.tag}\`.`);
 
-            return;
-          }
-        }
-
-        if (profile_data.mutes[0] && profile_data.mutes?.length % 2 === 0) {
+      if (warns[0] && (warns.length + 1) % 3 === 0) {
+        console.log(`mutes: ${mutes.length}`);
+        console.log(`mutes?.length % 3 === 0: ${mutes?.length % 3 === 0}`);
+        if (mutes[0] && mutes?.length % 3 === 0) {
           let await_ask = await this.ask(
             `Пользователь \`${member.user.tag}\` имеет более 2-х последних дисциплинарных наказаний, выдать блокировку?`
           );
@@ -187,31 +173,40 @@ class Command extends Command_template {
 
             return;
           }
+        } else if (warns[0] && (warns.length + 1) % 3 === 0) {
+          let await_ask = await this.ask(
+            `Пользователь \`${member.user.tag}\` имеет более 3-х последних варнов, выдать дисциплинарное наказание?`
+          );
+
+          if (await_ask && await_ask.customId === "accept") {
+            let time = f.parse_duration("24h");
+
+            await profile.mute({
+              mute_data: {
+                time: time,
+                reason: "Пользователь имеет 3 и более предупреждений.",
+                by: this.interaction.member.id,
+                date: new Date().getTime(),
+              },
+            });
+            this.msgH(
+              `Выдано дисциплинарное наказание участнику \`${
+                member.user.tag
+              }\` на \`${f.time(time)}\`.`
+            );
+
+            return;
+          }
         }
       }
-
-      let result = await profile.add_warn({ warn_data: warn });
-
-      if (!result)
-        return this.msgFalseH(
-          "Произошла ошибка при выполнении команды. Обратитесь к loli_knight"
-        );
-
-      this.msgH(`Успешно выдан варн участнику \`${member.user.tag}\`.`);
     } catch (error) {
-      console.log(
-        `Произошла ошибка при исполнении команды ${this.interaction.commandName}`
-      );
-      let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
-      errors_channel.send(
-        `Ошибка при исполнении команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
-      );
+      f.handle_error(error, "/-команда warn");
     }
   }
 
   async ask(message_content) {
     try {
-      let ask_message = await this.msg(message_content, {
+      let ask_message = await this.followUp(message_content, {
         components: [
           new Discord.MessageActionRow().addComponents(...this.ask_buttons),
         ],
@@ -229,13 +224,7 @@ class Command extends Command_template {
       await ask_message.delete();
       return await_ask;
     } catch (error) {
-      console.log(
-        `Произошла ошибка при исполнении команды ${this.interaction.commandName}`
-      );
-      let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
-      errors_channel.send(
-        `Ошибка при исполнении команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
-      );
+      f.handle_error(error, "/-команда warn");
     }
   }
 }

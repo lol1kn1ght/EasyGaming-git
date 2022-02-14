@@ -104,8 +104,9 @@ class Command extends Command_template {
           );
 
         if (
+          !this.interaction.member.permissions.has("ADMINISTRATOR") &&
           member.roles.highest.position >=
-          this.interaction.member.roles.highest.position
+            this.interaction.member.roles.highest.position
         )
           return this.msgFalseH(
             "Вы не можете снимать предупреждения этому участнику."

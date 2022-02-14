@@ -108,11 +108,7 @@ class Command extends Command_template {
 
     let others = `\`Текущее\`: ${profile_data.bans?.length || "0"} 🔨   |    ${
       profile_data.mutes?.length || "0"
-<<<<<<< HEAD
-    } 🔇   |   ${profile_data.warns?.length || "0"} ⚠️\n\`Архив\`: ${
-=======
     } 🔇   |   ${profile_data?.warns?.length || "0"} ⚠️\n\`Архив\`: ${
->>>>>>> 3b0defe7283959b7b2b101847cef0713d6dd99cf
       member_archieve?.bans?.length || 0
     } 🔨  | ${member_archieve?.mutes?.length || 0} 🔇  | ${
       member_archieve?.warns?.length || 0
