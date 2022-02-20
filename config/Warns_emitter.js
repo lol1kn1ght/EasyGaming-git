@@ -263,7 +263,12 @@ class Warn_emitter {
       if (!user_id) throw new Error("Не указан айди участника.");
       if (!ban_data) throw new Error("Не указана информация о бане.");
 
-      if (!ban_data.reason || !ban_data.by || !ban_data.time || !ban_data.date)
+      if (
+        !ban_data.reason ||
+        !ban_data.by ||
+        ban_data.time === undefined ||
+        !ban_data.date
+      )
         throw new Error("Указана не полная информация о бане.");
 
       let member = await this._get_member(user_id);
@@ -731,7 +736,7 @@ class Warn_emitter {
 
       let moderator = await this._get_member(by);
 
-      let guild_role = this.guild.roles.cache.get(id);
+      let guild_role = moderator.guild.roles.cache.get(id.map ? id[0] : id);
 
       let member_profile = new f.Profile(this.db, user_id);
       let member_data = await member_profile.fetch();

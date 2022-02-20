@@ -1,4 +1,4 @@
-const {MessageEmbed, MessageAttachment} = require("discord.js");
+const { MessageEmbed, MessageAttachment } = require("discord.js");
 
 module.exports = class Command_template {
   constructor(interaction) {
@@ -9,16 +9,16 @@ module.exports = class Command_template {
     let embed;
     if (this.interaction.replied) {
       if (typeof args === "string")
-        return this.interaction.followUp(args, {fetchReply: true});
+        return this.interaction.followUp(args, { fetchReply: true });
 
       if (typeof args === "object")
-        return this.interaction.followUp({embeds: [args], fetchReply: true});
+        return this.interaction.followUp({ embeds: [args], fetchReply: true });
     } else {
       if (typeof args === "string")
-        return this.interaction.reply(args, {fetchReply: true});
+        return this.interaction.reply(args, { fetchReply: true });
 
       if (typeof args === "object")
-        return this.interaction.reply({embeds: [args], fetchReply: true});
+        return this.interaction.reply({ embeds: [args], fetchReply: true });
     }
   }
 
@@ -45,7 +45,7 @@ module.exports = class Command_template {
     try {
       return this.interaction.editReply(options);
     } catch (e) {
-      return this.interaction.editReply({embeds: [embedTrue]});
+      return this.interaction.editReply({ embeds: [embedTrue] });
     }
   }
 
@@ -86,7 +86,7 @@ module.exports = class Command_template {
       .setTimestamp()
       .setFooter(
         this.interaction.member.user.tag,
-        this.interaction.member.user.displayAvatarURL({dynamic: true})
+        this.interaction.member.user.displayAvatarURL({ dynamic: true })
       );
 
     return embedTrue;
@@ -105,15 +105,31 @@ module.exports = class Command_template {
       .setTimestamp()
       .setFooter(
         this.interaction.member.user.tag,
-        this.interaction.member.user.displayAvatarURL({dynamic: true})
+        this.interaction.member.user.displayAvatarURL({ dynamic: true })
       );
 
     return embedFalse;
   }
+
+  followUp(embed_text, options = {}) {
+    let embedTrue = this._true_embed(embed_text);
+
+    options.embeds = [embedTrue];
+
+    return this.interaction.followUp(options);
+  }
+  followUpFalse(embed_text, options = {}) {
+    let embedFalse = this._false_embed(embed_text);
+
+    options.embeds = [embedFalse];
+
+    return this.interaction.followUp(options);
+  }
+
   _send(embed, options = {}) {
     if (options.attachments) {
       let i = 0;
-      const attachment = options.attachments.map(image => {
+      const attachment = options.attachments.map((image) => {
         new MessageAttachment(image, `image${i++}.png`);
         embed.setImage();
       });
@@ -121,20 +137,20 @@ module.exports = class Command_template {
     try {
       if (!this.interaction.replied) {
         return this.interaction.reply(
-          Object.assign({embeds: [embed]}, options)
+          Object.assign({ embeds: [embed] }, options)
         );
       }
       if (this.interaction.replied) {
         return this.interaction.followUp(
-          Object.assign({embeds: [embed]}, options)
+          Object.assign({ embeds: [embed] }, options)
         );
       }
     } catch (e) {
       if (!this.interaction.replied) {
-        return this.interaction.reply(Object.assign({embeds: [embed]}));
+        return this.interaction.reply(Object.assign({ embeds: [embed] }));
       }
       if (this.interaction.replied) {
-        return this.interaction.followUp(Object.assign({embeds: [embed]}));
+        return this.interaction.followUp(Object.assign({ embeds: [embed] }));
       }
     }
   }

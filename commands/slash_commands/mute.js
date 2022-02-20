@@ -107,18 +107,18 @@ class Command extends Command_template {
           "Вы не указали участника для дисциплинарного наказания."
         );
 
-      // if (member.user.bot || member.user.id === this.interaction.member.id)
-      //   return this.msgFalseH(
-      //     "Вы указали неверного участника для выдачи дисциплинарного наказания."
-      //   );
-      //
-      // if (
-      //   member.roles.highest.position >=
-      //   this.interaction.member.roles.highest.position
-      // )
-      //   return this.msgFalseH(
-      //     "Вы не можете выдавать дисциплинарные наказания этому участнику."
-      //   );
+      if (member.user.bot || member.user.id === this.interaction.member.id)
+        return this.msgFalseH(
+          "Вы указали неверного участника для выдачи дисциплинарного наказания."
+        );
+
+      if (
+        member.roles.highest.position >=
+        this.interaction.member.roles.highest.position
+      )
+        return this.msgFalseH(
+          "Вы не можете выдавать дисциплинарные наказания этому участнику."
+        );
 
       let profile = new f.Profile(this.db, member);
 
@@ -152,7 +152,7 @@ class Command extends Command_template {
         }\` на время \`${f.time(time)}\`.`
       );
 
-      if (mutes[0] && mutes.length % mute_limits[0] === 0) {
+      if (mutes[0] && (mutes.length + 1) % mute_limits[0] === 0) {
         let await_ask = await this.ask(
           `Пользователь \`${member.user.tag}\` имеет ${mute_limits[0]} и более последних дисциплинарных наказаний, выдать блокировку?`
         );

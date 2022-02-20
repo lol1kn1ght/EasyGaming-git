@@ -111,7 +111,7 @@ class Command extends Command_template {
     } 🔇   |   ${profile_data?.warns?.length || "0"} ⚠️\n\`Архив\`: ${
       member_archieve?.bans?.length || 0
     } 🔨  | ${member_archieve?.mutes?.length || 0} 🔇  | ${
-      member_archieve?.warns?.length
+      member_archieve?.warns?.length || 0
     } ⚠️`;
 
     let joined_date = new Date(member.joinedTimestamp);
