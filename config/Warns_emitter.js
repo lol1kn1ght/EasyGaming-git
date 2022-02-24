@@ -300,13 +300,15 @@ class Warn_emitter {
           });
       }
 
-      let banned_member = await this.guild.members.ban(user_id).catch((err) => {
-        f.handle_error(err, "[Warn_emitter] method ban", {
-          emit_data: ban_data,
-        });
+      let banned_member = await this.guild.members
+        .ban(user_id, { days: 7 })
+        .catch((err) => {
+          f.handle_error(err, "[Warn_emitter] method ban", {
+            emit_data: ban_data,
+          });
 
-        return null;
-      });
+          return null;
+        });
 
       if (banned_member === null) {
         return banned_member;
