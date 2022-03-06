@@ -856,7 +856,7 @@ class Warn_emitter {
         )
         .addField(
           ":round_pushpin: Роль:",
-          `${roles_to_remove.map((role) => role).join(", ")}`
+          `${roles_to_remove.map((role) => role).join(", ")}` || id.join(", ")
         );
 
       member
