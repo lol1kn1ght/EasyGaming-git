@@ -812,25 +812,22 @@ class Warn_emitter {
       if (!id || !by) throw new Error("Один из аргументов роли не указан.");
 
       let member = await this._get_member(user_id);
-
       let moderator = await this._get_member(by);
-
       let guild_role = this.guild.roles.cache.get(id);
-
       let member_profile = new f.Profile(this.db, user_id);
       let member_data = await member_profile.fetch();
-
       let member_timed_roles = member_data.timedRoles || [];
 
       let new_roles = member_timed_roles.filter(
         (time_role) =>
-          !(id.includes ? id.includes(time_role.role) : time_role.role === id)
+          !(id.push
+            ? id.includes([].concat(time_role.role)[0])
+            : time_role.role === id)
       );
 
       let roles_to_remove = member.roles.cache.filter((role) =>
         id.includes ? id.includes(role.id) : id === role.id
       );
-
       await member.roles
         .remove(roles_to_remove.map((role) => role.id))
         .catch((err) => {
@@ -1103,22 +1100,17 @@ class Warn_emitter {
             emit_data: { user_id, role_remove_data },
           }
         );
-
         return false;
       });
-
       if (!result) return false;
-
       let guild_roles = this.guild.roles.cache
         .filter((role) => (id.includes ? id.includes(role.id) : id === role.id))
         .map((r) => r);
-
       member.send(
         `:wastebasket: С вас была снята роль \`${guild_roles
           .map((role) => role.name)
           .join(", ")}\` на сервере \`${this.guild.name}\``
       );
-
       let role_embed = new Discord.MessageEmbed()
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTitle(":calendar_spiral: Снята роль:")
@@ -1131,42 +1123,32 @@ class Warn_emitter {
           `${moderator} ${moderator?.user?.tag} ID: ${by}`
         )
         .addField(":round_pushpin: Роль:", `${guild_roles.join(", ")}`);
-
       this._send_logs(role_embed);
       return true;
     } catch (err) {
       f.handle_error(err, "[Warns_emitter] method role_remove", {
         emit_data: { user_id, role_remove_data },
       });
-
       return false;
     }
   }
-
   _send_logs(log_embed, options = {}) {
     if (!log_embed) throw new Error("Ембед для отправки в логи не указан.");
-
     let logs_channel = Bot.bot.channels.cache.get(f.config.reports_channel);
-
     if (!logs_channel) {
       f.handle_error(
         new Error("Не найден канал для логов."),
         "[Warns_emitter] _send_logs"
       );
-
       return;
     }
-
     logs_channel.send({ embeds: [log_embed], ...options });
   }
-
   async _get_member(member_id) {
     let member = await this.guild.members
       .fetch(member_id)
       .catch((err) => undefined);
-
     return member;
   }
 }
-
 module.exports = Warn_emitter;

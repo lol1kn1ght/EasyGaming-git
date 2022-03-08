@@ -129,6 +129,11 @@ class Command extends Command_template {
         true
       )
       .addField(
+        ":credit_card: Золото",
+        `  ${f.discharge(profile_data.gold || 0)} ${f.config.gold_icon}`,
+        true
+      )
+      .addField(
         ":school_satchel: Алмазы",
         `  ${f.discharge(profile_data.diamonds || 0)} :gem:`,
         true

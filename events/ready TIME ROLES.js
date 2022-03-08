@@ -52,7 +52,7 @@ module.exports = function (args) {
           return;
         }
 
-        let roles = till_roles.map((role) => role.role);
+        let roles = till_roles.map((role) => role.role)[0];
 
         // member.roles.remove(roles);
 
