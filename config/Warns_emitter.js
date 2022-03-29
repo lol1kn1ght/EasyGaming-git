@@ -17,6 +17,11 @@ class Warn_emitter {
     };
 
     /**
+     * Если при обработке пользователя вылезла ошибка, то он добавляется сюда и не обновляется некоторое время
+     */
+    this.errored = {};
+
+    /**
      * Объект со слушателями евентов
      * @type Object
      */
@@ -725,7 +730,7 @@ class Warn_emitter {
     try {
       let { time, till, id, by } = time_role_data;
 
-      if (!time || !till || !id || !by)
+      if (!time || !till || !id || !id[0] || !by)
         throw new Error("Один из аргументов роли не указан.");
 
       let new_role = {
@@ -738,15 +743,15 @@ class Warn_emitter {
 
       let moderator = await this._get_member(by);
 
-      let guild_role = moderator.guild.roles.cache.get(id.map ? id[0] : id);
+      let guild_role = moderator.guild.roles.cache.get(id[0]);
 
       let member_profile = new f.Profile(this.db, user_id);
       let member_data = await member_profile.fetch();
 
       let member_timed_roles = member_data.timedRoles || [];
 
-      let same_role = member_timed_roles.filter(
-        (time_role) => time_role.role === id
+      let same_role = member_timed_roles.filter((time_role) =>
+        id.includes(time_role.role)
       )[0];
 
       if (same_role)
@@ -798,7 +803,7 @@ class Warn_emitter {
       f.handle_error(err, "[Warns_emitter] method role", {
         emit_data: { user_id, time_role_data },
       });
-
+      this.errored[user_id] = new Date().getTime() + 3600000;
       return false;
     }
   }
@@ -807,26 +812,37 @@ class Warn_emitter {
     try {
       if (!user_id) throw new Error("Не указан айди участника");
 
+      if (this.errored[user_id] > new Date().getTime()) {
+        f.handle_error(
+          "Повторная ошибка для пользователя",
+          "[Warns_emitter] method time_role_remove",
+          {
+            emit_data: {
+              user_id,
+              time_roles_data,
+            },
+          }
+        );
+        return false;
+      }
       let { id, by } = time_roles_data;
 
-      if (!id || !by) throw new Error("Один из аргументов роли не указан.");
+      if (!id || !id[0] || !by)
+        throw new Error("Один из аргументов роли не указан.");
 
+      id = id.flat();
       let member = await this._get_member(user_id);
       let moderator = await this._get_member(by);
-      let guild_role = this.guild.roles.cache.get(id);
       let member_profile = new f.Profile(this.db, user_id);
       let member_data = await member_profile.fetch();
       let member_timed_roles = member_data.timedRoles || [];
 
       let new_roles = member_timed_roles.filter(
-        (time_role) =>
-          !(id.push
-            ? id.includes([].concat(time_role.role)[0])
-            : time_role.role === id)
+        (time_role) => !id.includes([].concat(time_role.role)[0])
       );
 
       let roles_to_remove = member.roles.cache.filter((role) =>
-        id.includes ? id.includes(role.id) : id === role.id
+        id.includes(role.id)
       );
       await member.roles
         .remove(roles_to_remove.map((role) => role.id))
@@ -835,6 +851,17 @@ class Warn_emitter {
             emit_data: { user_id, time_roles_data },
           });
         });
+
+      if (!roles_to_remove[0]) {
+        // f.handle_error(
+        //   "пустой массив с ролями пользователя",
+        //   "[Warns_emitter] member.roles.remove",
+        //   {
+        //     emit_data: { user_id, time_roles_data },
+        //   }
+        // );
+        return false;
+      }
 
       member_profile.update_data({ timedRoles: new_roles });
 
@@ -879,7 +906,7 @@ class Warn_emitter {
       f.handle_error(err, "[Warns_emitter] method time_role_remove", {
         emit_data: { user_id, time_roles_data },
       });
-
+      this.errored[user_id] = new Date().getTime() + 3600000;
       return false;
     }
   }
@@ -999,9 +1026,23 @@ class Warn_emitter {
       if (!role_data)
         throw new Error("Не указана информация о роли для выдачи.");
 
+      if (this.errored[user_id] > new Date().getTime()) {
+        f.handle_error(
+          "Повторная ошибка для пользователя",
+          "[Warns_emitter] method role",
+          {
+            emit_data: {
+              user_id,
+              role_data,
+            },
+          }
+        );
+        return false;
+      }
+
       let { id, by } = role_data;
 
-      if (!id || !by) throw new Error("Информация не полная.");
+      if (!id || !id[0] || !by) throw new Error("Информация не полная.");
 
       let member = await this._get_member(user_id);
 
@@ -1011,11 +1052,7 @@ class Warn_emitter {
 
       let roles_to_add;
 
-      if (id.includes) {
-        roles_to_add = id.filter((role_id) => !member.roles.cache.has(role_id));
-      } else {
-        roles_to_add = id;
-      }
+      roles_to_add = id.filter((role_id) => !member.roles.cache.has(role_id));
 
       let result = await member.roles.add(roles_to_add).catch((err) => {
         f.handle_error(err, "[Warns_emitter] member.roles.add in method role", {
@@ -1028,7 +1065,7 @@ class Warn_emitter {
       if (!result) return false;
 
       let guild_roles = member.guild.roles.cache
-        .filter((role) => (id.includes ? id.includes(role.id) : id === role.id))
+        .filter((role) => id.includes(role.id))
         .map((role) => role);
 
       let role_embed = new Discord.MessageEmbed()
@@ -1063,19 +1100,35 @@ class Warn_emitter {
         emit_data: { user_id, role_data },
       });
 
+      this.errored[user_id] = new Date().getTime() + 3600000;
       return false;
     }
   }
 
   async role_remove({ user_id, role_remove_data }) {
     try {
-      if (!user_id) throw new Error("Не указан айди участника.");
+      if (this.errored[user_id] > new Date().getTime()) return false;
 
+      if (!user_id) throw new Error("Не указан айди участника.");
+      if (this.errored[user_id] > new Date().getTime()) {
+        f.handle_error(
+          "Повторная ошибка для пользователя",
+          "[Warns_emitter] method role_remove",
+          {
+            emit_data: {
+              user_id,
+              role_remove_data,
+            },
+          }
+        );
+        return false;
+      }
       if (!role_remove_data)
         throw new Error("Не указана информация о роли для снятия.");
 
       let { id, by } = role_remove_data;
-      if (!id || !by) throw new Error("Информация о снятии ролей не полная.");
+      if (!id || !id[0] || !by)
+        throw new Error("Информация о снятии ролей не полная.");
 
       let member = await this._get_member(user_id);
       if (!member) throw new Error("Указан несуществующий участник");
@@ -1084,13 +1137,9 @@ class Warn_emitter {
 
       let roles_to_remove;
 
-      if (id.includes) {
-        roles_to_remove = member.roles.cache.filter((role) =>
-          id.includes(role.id)
-        );
-      } else {
-        roles_to_remove = id;
-      }
+      roles_to_remove = member.roles.cache.filter((role) =>
+        id.includes(role.id)
+      );
 
       let result = await member.roles.remove(roles_to_remove).catch((err) => {
         f.handle_error(
@@ -1104,7 +1153,7 @@ class Warn_emitter {
       });
       if (!result) return false;
       let guild_roles = this.guild.roles.cache
-        .filter((role) => (id.includes ? id.includes(role.id) : id === role.id))
+        .filter((role) => id.includes(role.id))
         .map((r) => r);
       member.send(
         `:wastebasket: С вас была снята роль \`${guild_roles
@@ -1129,6 +1178,8 @@ class Warn_emitter {
       f.handle_error(err, "[Warns_emitter] method role_remove", {
         emit_data: { user_id, role_remove_data },
       });
+
+      this.errored[user_id] = new Date().getTime() + 3600000;
       return false;
     }
   }

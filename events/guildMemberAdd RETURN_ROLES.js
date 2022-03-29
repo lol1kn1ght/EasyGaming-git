@@ -51,7 +51,7 @@ module.exports = function (args, member) {
 
       await (async () => {
         try {
-          if (!user?.archieve.bans || !user?.archieve.bans[0]) return;
+          if (!user?.archieve?.bans || !user?.archieve?.bans[0]) return;
 
           let last_ban = user.bans[user.bans.length - 1];
 

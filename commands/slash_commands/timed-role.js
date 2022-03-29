@@ -118,7 +118,7 @@ class Command extends Command_template {
     let result = await f.warn_emitter.time_role({
       user_id: member.id,
       time_role_data: {
-        id: times[role_tag].id,
+        id: [times[role_tag].id],
         till: new Date().getTime() + time,
         time: time,
         by: this.interaction.member.id,
