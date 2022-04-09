@@ -33,7 +33,7 @@ module.exports = function (args) {
 
       row.addComponents(this.prev_page, this.next_page);
 
-      let menu = await this.interaction.reply({
+      let menu = await this.interaction.editReply({
         embeds: [this.pages[this.current_page]],
         components: this.pages[1] ? [row] : undefined,
         fetchReply: true,

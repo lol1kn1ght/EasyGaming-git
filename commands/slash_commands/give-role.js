@@ -56,61 +56,70 @@ class Command extends Command_template {
   }
 
   async execute() {
-    let role_tag = this.command_args.filter((arg) => arg.name === "роль")[0]
-      ?.value;
-    if (!role_tag) this.msgFalseH("Вы не указали роль.");
-
-    let times = {
-      flowers: f.config.roles.flowers,
-      cheats: f.config.roles.cheats,
-      adult: f.config.roles.adult,
-    };
-
-    if (role_tag === "adult") {
-      if (
-        !this.interaction.member.roles.cache.has("596307104802013208") &&
-        !this.interaction.member.roles.cache.has("626296522048274452") &&
-        !this.interaction.member.permissions.has("ADMINISTRATOR")
-      )
-        return this.msgFalseH("У вас недостаточно прав для выдачи этой роли.");
-    }
-
-    let member = this.command_args.filter((arg) => arg.name === "упоминание")[0]
-      ?.member;
-
-    let member_id = member?.id;
-
-    if (!member) {
-      member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
+    try {
+      let role_tag = this.command_args.filter((arg) => arg.name === "роль")[0]
         ?.value;
+      if (!role_tag) this.msgFalseH("Вы не указали роль.");
 
-      if (!member_id)
-        return this.msgFalseH("Вы не указали участника выдачи роли.");
+      let times = {
+        flowers: f.config.roles.flowers,
+        cheats: f.config.roles.cheats,
+        adult: f.config.roles.adult,
+      };
 
-      member = await this.interaction.guild.members
-        .fetch(member_id)
-        .catch((e) => undefined);
+      if (role_tag === "adult") {
+        if (
+          !this.interaction.member.roles.cache.has("596307104802013208") &&
+          !this.interaction.member.roles.cache.has("626296522048274452") &&
+          !this.interaction.member.permissions.has("ADMINISTRATOR")
+        )
+          return this.msgFalseH(
+            "У вас недостаточно прав для выдачи этой роли."
+          );
+      }
+
+      let member = this.command_args.filter(
+        (arg) => arg.name === "упоминание"
+      )[0]?.member;
+
+      let member_id = member?.id;
+
+      if (!member) {
+        member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
+          ?.value;
+
+        if (!member_id)
+          return this.msgFalseH("Вы не указали участника выдачи роли.");
+
+        member = await this.interaction.guild.members
+          .fetch(member_id)
+          .catch((e) => undefined);
+      }
+
+      if (!member)
+        return this.msgFalseH("Вы не указали участника для выдачи роли.");
+
+      if (member?.user.bot)
+        return this.msgFalseH(
+          "Вы указали неверного участника для выдачи роли."
+        );
+
+      f.warn_emitter.role({
+        user_id: member_id,
+        role_data: {
+          id: [times[role_tag]],
+          by: this.interaction.member.id,
+        },
+      });
+
+      this.msgH(
+        `Вы успешно выдали роль ${this.interaction.guild.roles.cache.get(
+          times[role_tag]
+        )} участнику \`${member.user.tag}\``
+      );
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
-
-    if (!member)
-      return this.msgFalseH("Вы не указали участника для выдачи роли.");
-
-    if (member?.user.bot)
-      return this.msgFalseH("Вы указали неверного участника для выдачи роли.");
-
-    f.warn_emitter.role({
-      user_id: member_id,
-      role_data: {
-        id: [times[role_tag]],
-        by: this.interaction.member.id,
-      },
-    });
-
-    this.msgH(
-      `Вы успешно выдали роль ${this.interaction.guild.roles.cache.get(
-        times[role_tag]
-      )} участнику \`${member.user.tag}\``
-    );
   }
 }
 

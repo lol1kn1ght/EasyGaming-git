@@ -58,83 +58,90 @@ class Command extends Command_template {
   }
 
   async execute() {
-    let role_tag = this.command_args.filter((arg) => arg.name === "роль")[0]
-      ?.value;
-    if (!role_tag) this.msgFalseH("Вы не указали роль.");
+    try {
+      let role_tag = this.command_args.filter((arg) => arg.name === "роль")[0]
+        ?.value;
+      if (!role_tag) this.msgFalseH("Вы не указали роль.");
 
-    let times = {
-      best_player: { time: "7d", id: f.config.best_player },
-      half_ban: { time: "30d", id: f.config.half_of_ban },
-    };
+      let times = {
+        best_player: { time: "7d", id: f.config.best_player },
+        half_ban: { time: "30d", id: f.config.half_of_ban },
+      };
 
-    let allowed_roles = [
-      "596307104802013208",
-      "465581489535582208",
-      "626296522048274452",
-      "801538565820383233",
-    ];
+      let allowed_roles = [
+        "596307104802013208",
+        "465581489535582208",
+        "626296522048274452",
+        "801538565820383233",
+      ];
 
-    if (
-      role_tag !== "best_player" &&
-      !this.interaction.member.roles.cache
-        .filter((role) => allowed_roles.includes(role.id))
-        ?.first()
-    )
-      return this.msgFalseH("У вас недостаточно прав для выдачи этой роли.");
+      if (
+        role_tag !== "best_player" &&
+        !this.interaction.member.roles.cache
+          .filter((role) => allowed_roles.includes(role.id))
+          ?.first()
+      )
+        return this.msgFalseH("У вас недостаточно прав для выдачи этой роли.");
 
-    let time_arg = this.command_args.filter((arg) => arg.name === "время")[0]
-      ?.value;
-
-    let time = f.parse_duration(time_arg);
-
-    if (time === null || time < 0)
-      time = f.parse_duration(times[role_tag].time);
-    if (time < 60000 && time !== 0)
-      return this.msgFalseH("Время роли не может быть меньше `1 часа`.");
-
-    let member = this.command_args.filter((arg) => arg.name === "упоминание")[0]
-      ?.member;
-
-    let member_id = member?.id;
-
-    if (!member) {
-      member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
+      let time_arg = this.command_args.filter((arg) => arg.name === "время")[0]
         ?.value;
 
-      if (!member_id)
-        return this.msgFalseH("Вы не указали участника для бана.");
+      let time = f.parse_duration(time_arg);
 
-      member = await this.interaction.guild.members
-        .fetch(member_id)
-        .catch((e) => undefined);
-    }
+      if (time === null || time < 0)
+        time = f.parse_duration(times[role_tag].time);
+      if (time < 60000 && time !== 0)
+        return this.msgFalseH("Время роли не может быть меньше `1 часа`.");
 
-    if (!member)
-      return this.msgFalseH("Вы не указали участника для выдачи роли.");
+      let member = this.command_args.filter(
+        (arg) => arg.name === "упоминание"
+      )[0]?.member;
 
-    if (member?.user.bot)
-      return this.msgFalseH("Вы указали неверного участника для выдачи роли.");
+      let member_id = member?.id;
 
-    let result = await f.warn_emitter.time_role({
-      user_id: member.id,
-      time_role_data: {
-        id: [times[role_tag].id],
-        till: new Date().getTime() + time,
-        time: time,
-        by: this.interaction.member.id,
-      },
-    });
+      if (!member) {
+        member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
+          ?.value;
 
-    if (!result)
-      return this.msgFalse(
-        "При выполнении команды возникла ошибка. Обратитесь к loli_knight"
+        if (!member_id)
+          return this.msgFalseH("Вы не указали участника для бана.");
+
+        member = await this.interaction.guild.members
+          .fetch(member_id)
+          .catch((e) => undefined);
+      }
+
+      if (!member)
+        return this.msgFalseH("Вы не указали участника для выдачи роли.");
+
+      if (member?.user.bot)
+        return this.msgFalseH(
+          "Вы указали неверного участника для выдачи роли."
+        );
+
+      let result = await f.warn_emitter.time_role({
+        user_id: member.id,
+        time_role_data: {
+          id: [times[role_tag].id],
+          till: new Date().getTime() + time,
+          time: time,
+          by: this.interaction.member.id,
+        },
+      });
+
+      if (!result)
+        return this.msgFalse(
+          "При выполнении команды возникла ошибка. Обратитесь к loli_knight"
+        );
+
+      this.msgH(
+        `Вы успешно выдали роль ${this.interaction.guild.roles.cache.get(
+          times[role_tag].id
+        )} участнику ${member} на срок \`${f.time(time)}\``
       );
-
-    this.msgH(
-      `Вы успешно выдали роль ${this.interaction.guild.roles.cache.get(
-        times[role_tag].id
-      )} участнику ${member} на срок \`${f.time(time)}\``
-    );
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
+    }
   }
 }
 

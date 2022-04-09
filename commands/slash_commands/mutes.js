@@ -141,13 +141,7 @@ class Command extends Command_template {
           interaction.member.id === this.interaction.member.id,
       });
     } catch (error) {
-      console.log(
-        `Произошла ошибка при исполнении команды ${this.interaction.commandName}`
-      );
-      let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
-      errors_channel.send(
-        `Ошибка при исполнении команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
-      );
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 }

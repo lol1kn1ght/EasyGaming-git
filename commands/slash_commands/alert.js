@@ -26,21 +26,25 @@ class Command extends Command_template {
   }
 
   async execute() {
-    let alert_content = this.command_args.filter(
-      (arg) => arg.name === "сообщение"
-    )[0]?.value;
-    if (!alert_content) this.msgFalseH("Вы не указали причину бана.");
+    try {
+      let alert_content = this.command_args.filter(
+        (arg) => arg.name === "сообщение"
+      )[0]?.value;
+      if (!alert_content) this.msgFalseH("Вы не указали причину бана.");
 
-    var repChannel = this.interaction.guild.channels.cache.find(
-      (val) => val.name == "reports"
-    );
-    if (!repChannel) return channel.send("Ошибка поиска канала **reports**");
+      var repChannel = this.interaction.guild.channels.cache.find(
+        (val) => val.name == "reports"
+      );
+      if (!repChannel) return channel.send("Ошибка поиска канала **reports**");
 
-    repChannel.send(
-      `<@&465581489535582208>\n:warning: **${this.interaction.user.tag}** ID: ${this.interaction.user.id} сообщает: "${alert_content}"`
-    );
+      repChannel.send(
+        `<@&465581489535582208>\n:warning: **${this.interaction.user.tag}** ID: ${this.interaction.user.id} сообщает: "${alert_content}"`
+      );
 
-    this.msgH("Вы успешно отправили сообщение для администрации.");
+      this.msgH("Вы успешно отправили сообщение для администрации.");
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
+    }
   }
 }
 

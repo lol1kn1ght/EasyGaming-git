@@ -319,10 +319,9 @@ class Command extends Command_template {
         ...this.default_buttons()
       );
 
-      let menu_message = await this.interaction.reply({
+      let menu_message = await this.interaction.editReply({
         embeds: [panel_embed],
         components: [components_row],
-        fetchReply: true,
       });
 
       this.menu_message = menu_message;
@@ -609,7 +608,7 @@ class Command extends Command_template {
         components: [new_buttons, menu_row],
       });
     } catch (err) {
-      f.handle_error(err, `/-команда ${this.options.name}`);
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 

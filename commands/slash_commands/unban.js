@@ -1,4 +1,4 @@
-const {Command_template} = require("../../config/templates");
+const { Command_template } = require("../../config/templates");
 const Discord = require("discord.js");
 
 class Command extends Command_template {
@@ -18,26 +18,26 @@ class Command extends Command_template {
             name: "причина",
             description: "Причина разбана",
             type: 3,
-            required: true
+            required: true,
           },
           {
             name: "айди",
             description: "Айди участника",
             type: 3,
-            required: true
-          }
-        ]
-      }
+            required: true,
+          },
+        ],
+      },
     };
   }
 
   async execute() {
     try {
-      let reason = this.command_args.filter(arg => arg.name === "причина")[0]
+      let reason = this.command_args.filter((arg) => arg.name === "причина")[0]
         ?.value;
       if (!reason) this.msgFalseH("Вы не указали причину мьюта.");
 
-      let member_id = this.command_args.filter(arg => arg.name === "айди")[0]
+      let member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
         ?.value;
 
       if (!member_id)
@@ -46,13 +46,13 @@ class Command extends Command_template {
       let unban = {
         reason: reason,
         by: this.interaction.member.id,
-        date: new Date().getTime()
+        date: new Date().getTime(),
       };
 
       let result = await f.warn_emitter.unban({
         user_id: member_id,
 
-        unban_data: unban
+        unban_data: unban,
       });
 
       if (result === null) {
@@ -68,14 +68,8 @@ class Command extends Command_template {
       }
 
       this.msgH(`Вы успешно разбанили \`${member_id}\`.`);
-    } catch (error) {
-      console.log(
-        `Произошла ошибка при исполнении команды ${this.interaction.commandName}`
-      );
-      let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
-      errors_channel.send(
-        `Ошибка при исполнении команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
-      );
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 }

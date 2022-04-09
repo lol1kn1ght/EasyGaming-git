@@ -61,72 +61,79 @@ class Command extends Command_template {
   }
 
   async execute() {
-    let role_tag_args = this.command_args.filter(
-      (arg) => arg.name === "роль"
-    )[0]?.value;
-    if (!role_tag_args) this.msgFalseH("Вы не указали роль.");
+    try {
+      let role_tag_args = this.command_args.filter(
+        (arg) => arg.name === "роль"
+      )[0]?.value;
+      if (!role_tag_args) this.msgFalseH("Вы не указали роль.");
 
-    let roles = {
-      "best-player": f.config.best_player,
-      "half-ban": f.config.half_of_ban,
-      flowers: f.config.roles.flowers,
-      cheats: f.config.roles.cheats,
-      adult: f.config.roles.adult,
-    };
+      let roles = {
+        "best-player": f.config.best_player,
+        "half-ban": f.config.half_of_ban,
+        flowers: f.config.roles.flowers,
+        cheats: f.config.roles.cheats,
+        adult: f.config.roles.adult,
+      };
 
-    let member = this.command_args.filter((arg) => arg.name === "упоминание")[0]
-      ?.member;
+      let member = this.command_args.filter(
+        (arg) => arg.name === "упоминание"
+      )[0]?.member;
 
-    let member_id = member?.id;
+      let member_id = member?.id;
 
-    if (!member) {
-      member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
-        ?.value;
+      if (!member) {
+        member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
+          ?.value;
 
-      if (!member_id)
-        return this.msgFalseH("Вы не указали участника для бана.");
+        if (!member_id)
+          return this.msgFalseH("Вы не указали участника для бана.");
 
-      member = await this.interaction.guild.members
-        .fetch(member_id)
-        .catch((e) => undefined);
+        member = await this.interaction.guild.members
+          .fetch(member_id)
+          .catch((e) => undefined);
+      }
+
+      if (!member)
+        return this.msgFalseH("Вы не указали участника для выдачи роли.");
+
+      if (member?.user.bot)
+        return this.msgFalseH(
+          "Вы указали неверного участника для выдачи роли."
+        );
+
+      let role_vals = role_tag_args.split("_");
+
+      let role_tag = role_vals[0];
+      let role_type = role_vals[1];
+
+      if (role_type === "TIMED") {
+        f.warn_emitter.time_role_remove({
+          user_id: member_id,
+          time_roles_data: {
+            id: [roles[role_tag]],
+            by: this.interaction.member.id,
+          },
+        });
+      }
+
+      if (role_type === "DEF") {
+        f.warn_emitter.role_remove({
+          user_id: member_id,
+          role_remove_data: {
+            id: [roles[role_tag]],
+            by: this.interaction.member.id,
+          },
+        });
+      }
+
+      this.msgH(
+        `Вы успешно сняли роль ${this.interaction.guild.roles.cache.get(
+          roles[role_tag]
+        )} участнику \`${member.user.tag}\``
+      );
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
-
-    if (!member)
-      return this.msgFalseH("Вы не указали участника для выдачи роли.");
-
-    if (member?.user.bot)
-      return this.msgFalseH("Вы указали неверного участника для выдачи роли.");
-
-    let role_vals = role_tag_args.split("_");
-
-    let role_tag = role_vals[0];
-    let role_type = role_vals[1];
-
-    if (role_type === "TIMED") {
-      f.warn_emitter.time_role_remove({
-        user_id: member_id,
-        time_roles_data: {
-          id: [roles[role_tag]],
-          by: this.interaction.member.id,
-        },
-      });
-    }
-
-    if (role_type === "DEF") {
-      f.warn_emitter.role_remove({
-        user_id: member_id,
-        role_remove_data: {
-          id: [roles[role_tag]],
-          by: this.interaction.member.id,
-        },
-      });
-    }
-
-    this.msgH(
-      `Вы успешно сняли роль ${this.interaction.guild.roles.cache.get(
-        roles[role_tag]
-      )} участнику \`${member.user.tag}\``
-    );
   }
 }
 

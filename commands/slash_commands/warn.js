@@ -199,8 +199,8 @@ class Command extends Command_template {
           }
         }
       }
-    } catch (error) {
-      f.handle_error(error, "/-команда warn");
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 
@@ -223,8 +223,8 @@ class Command extends Command_template {
         .catch((err) => undefined);
       await ask_message.delete();
       return await_ask;
-    } catch (error) {
-      f.handle_error(error, "/-команда warn");
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 }

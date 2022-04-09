@@ -72,12 +72,9 @@ class Command extends Command_template {
         ?.value;
       if (!reason)
         this.msgFalseH("Вы не указали причину дисциплинарного наказания.");
-
       let time_arg = this.command_args.filter((arg) => arg.name === "время")[0]
         ?.value;
-
       let time = f.parse_duration(time_arg);
-
       if (time === null || time <= 0) time = f.parse_duration("24h");
       if (time < 6000)
         return this.msgFalseH(
@@ -220,14 +217,8 @@ class Command extends Command_template {
         .catch((err) => undefined);
       await ask_message.delete();
       return await_ask;
-    } catch (error) {
-      console.log(
-        `Произошла ошибка при исполнении команды ${this.interaction.commandName}`
-      );
-      let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
-      errors_channel.send(
-        `Ошибка при исполнении команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
-      );
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 }

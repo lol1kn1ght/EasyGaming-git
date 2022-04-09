@@ -26,39 +26,43 @@ class Command extends Command_template {
   }
 
   async execute() {
-    let domain = this.command_args.filter((arg) => arg.name === "домен")[0]
-      ?.value;
-    if (!domain) this.msgFalseH("Вы не указали домен.");
+    try {
+      let domain = this.command_args.filter((arg) => arg.name === "домен")[0]
+        ?.value;
+      if (!domain) this.msgFalseH("Вы не указали домен.");
 
-    let utils_db = this.db.collection("utils");
-    let domains_data = await utils_db.findOne({ name: "domains" });
-    let domains = domains_data?.domains || [];
+      let utils_db = this.db.collection("utils");
+      let domains_data = await utils_db.findOne({ name: "domains" });
+      let domains = domains_data?.domains || [];
 
-    if (domains.includes(domain)) domains.splice(domains.indexOf(domain), 1);
-    else return this.msgH(`Указанный домен не находится в базе данных.`);
+      if (domains.includes(domain)) domains.splice(domains.indexOf(domain), 1);
+      else return this.msgH(`Указанный домен не находится в базе данных.`);
 
-    f.domains = domains;
+      f.domains = domains;
 
-    if (!domains_data) {
-      utils_db.insertOne({
-        name: "domains",
-        domains: domains,
-      });
-    }
-    if (domains_data) {
-      utils_db.updateOne(
-        {
+      if (!domains_data) {
+        utils_db.insertOne({
           name: "domains",
-        },
-        {
-          $set: {
-            domains: domains,
+          domains: domains,
+        });
+      }
+      if (domains_data) {
+        utils_db.updateOne(
+          {
+            name: "domains",
           },
-        }
-      );
-    }
+          {
+            $set: {
+              domains: domains,
+            },
+          }
+        );
+      }
 
-    this.msgH(`Вы успешно убрали домен \`${domain}\` из базы.`);
+      this.msgH(`Вы успешно убрали домен \`${domain}\` из базы.`);
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
+    }
   }
 }
 
