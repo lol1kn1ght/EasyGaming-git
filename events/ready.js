@@ -7,7 +7,7 @@ module.exports = function (args) {
     async execute() {
       console.log(`\n${Bot.bot.user.tag} Запущен успешно.`);
 
-      this.bot.channels.cache.get("432890572269813760").send("Запустился");
+      this.bot.channels.cache.get("432890572269813760")?.send("Запустился");
 
       const fs = require("fs");
       var guild = this.bot.guilds.cache.get("314105293682376707");
