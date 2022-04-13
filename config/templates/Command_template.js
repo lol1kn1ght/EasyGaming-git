@@ -136,18 +136,19 @@ module.exports = class Command_template {
     }
     try {
       if (!this.interaction.replied) {
-        return this.interaction.reply(
+        return this.interaction.editReply(
           Object.assign({ embeds: [embed] }, options)
         );
       }
       if (this.interaction.replied) {
         return this.interaction.followUp(
-          Object.assign({ embeds: [embed] }, options)
+          Object.assign({ embeds: [embed], fetchReply: true }, options)
         );
       }
     } catch (e) {
+      f.hadnle_error(e, "[Command_template] _send");
       if (!this.interaction.replied) {
-        return this.interaction.reply(Object.assign({ embeds: [embed] }));
+        return this.interaction.editReply(Object.assign({ embeds: [embed] }));
       }
       if (this.interaction.replied) {
         return this.interaction.followUp(Object.assign({ embeds: [embed] }));

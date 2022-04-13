@@ -1,4 +1,4 @@
-module.exports = function (args) {
+module.exports = function(args) {
   class Event {
     constructor(args) {
       Object.assign(this, args);
@@ -12,41 +12,36 @@ module.exports = function (args) {
       const fs = require("fs");
       var guild = this.bot.guilds.cache.get("314105293682376707");
 
-      setInterval(function () {
+      setInterval(function() {
         var online = guild.members.cache.filter(
-          (member) => member.presence && member.presence.clientStatus != null
+          member => member.presence && member.presence.clientStatus != null
         ).size;
-        var voice = guild.members.cache.filter(
-          (member) => member.voice.channel
-        ).size;
+        var voice = guild.members.cache.filter(member => member.voice.channel)
+          .size;
         var date = new Date();
-        var daten = `${date.getDate()}.${
-          date.getMonth() + 1
-        }.${date.getFullYear()}`;
-        var text = `\n[${
-          date.getHours() + 3
-        }:${date.getMinutes()}:${date.getSeconds()}] ${
+        var daten = `${date.getDate()}.${date.getMonth() +
+          1}.${date.getFullYear()}`;
+        var text = `\n[${date.getHours() +
+          3}:${date.getMinutes()}:${date.getSeconds()}] ${
           guild.memberCount
         }:${online}:${voice}`;
         //console.log(text);
-        fs.access(`./data/stat_logs/${daten}.txt`, function (error) {
+        fs.access(`./data/stat_logs/${daten}.txt`, function(error) {
           if (error) {
             fs.appendFile(
               `./data/stat_logs/${daten}.txt`,
               `[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}] Начато логирование статистики.\n[Время] Всего:Онлайн:Подключено` +
                 text,
-              function (error) {
+              function(error) {
                 if (error) console.log(error);
               }
             );
           } else {
-            fs.appendFile(
-              `./data/stat_logs/${daten}.txt`,
-              text,
-              function (error) {
-                if (error) console.log(error);
-              }
-            );
+            fs.appendFile(`./data/stat_logs/${daten}.txt`, text, function(
+              error
+            ) {
+              if (error) console.log(error);
+            });
           }
         });
       }, 15 * 60 * 1000);
@@ -54,7 +49,7 @@ module.exports = function (args) {
       let muted_users = await this.db
         .collection("users")
         .find({
-          "muted.is": true,
+          "muted.is": true
         })
         .toArray();
 

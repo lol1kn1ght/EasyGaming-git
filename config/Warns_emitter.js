@@ -837,22 +837,15 @@ class Warn_emitter {
       let member_data = await member_profile.fetch();
       let member_timed_roles = member_data.timedRoles || [];
 
-      let new_roles = member_timed_roles.filter(
-        (time_role) => !id.includes([].concat(time_role.role)[0])
-      );
+      let new_roles = member_timed_roles.filter((time_role) => {
+        return !id.includes([].concat(time_role.role)[0]);
+      });
 
       let roles_to_remove = member.roles.cache.filter((role) =>
         id.includes(role.id)
       );
-      await member.roles
-        .remove(roles_to_remove.map((role) => role.id))
-        .catch((err) => {
-          f.handle_error(err, "[Warns_emitter] member.roles.remove", {
-            emit_data: { user_id, time_roles_data },
-          });
-        });
 
-      if (!roles_to_remove[0]) {
+      if (!roles_to_remove.first()) {
         // f.handle_error(
         //   "пустой массив с ролями пользователя",
         //   "[Warns_emitter] member.roles.remove",
@@ -862,6 +855,14 @@ class Warn_emitter {
         // );
         return false;
       }
+
+      await member.roles
+        .remove(roles_to_remove.map((role) => role.id))
+        .catch((err) => {
+          f.handle_error(err, "[Warns_emitter] member.roles.remove", {
+            emit_data: { user_id, time_roles_data },
+          });
+        });
 
       member_profile.update_data({ timedRoles: new_roles });
 

@@ -9,7 +9,12 @@ module.exports = function (args) {
     }
 
     async unmute(db, f) {
-      let users_data = await db.collection("users").find().toArray();
+      let users_data = await db
+        .collection("users")
+        .find({
+          "timedRoles.0": { $exists: true },
+        })
+        .toArray();
 
       let users = users_data.filter(
         (user) => user.timedRoles && user.timedRoles[0]

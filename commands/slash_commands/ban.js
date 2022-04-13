@@ -125,10 +125,7 @@ class Command extends Command_template {
           );
           if (await_ask && await_ask.customId === "accept") {
             let bans = profile_data.bans || [];
-            console.log("лять");
-
             time = f.parse_duration("365d");
-
             let ban = {
               time: time,
               reason: "Пользователь имеет 1 или более блокировок.",
@@ -162,7 +159,6 @@ class Command extends Command_template {
                 member?.user?.tag || member_id
               }\` на \`${f.time(time)}\`.`
             );
-
             return;
           }
         }
@@ -200,32 +196,35 @@ class Command extends Command_template {
           member?.user?.tag || member_id
         }\` на время \`${time === 0 ? "Перманентно" : f.time(time)}\`.`
       );
-    } catch (error) {
-      console.log(
-        `Произошла ошибка при исполнении команды ${this.interaction.commandName}`
-      );
-      let errors_channel = Bot.bot.channels.cache.get(f.config.errorsChannel);
-      errors_channel.send(
-        `Ошибка при исполнении команды \`${this.interaction.commandName}\`:\n\`${error.name}: ${error.message}\``
-      );
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
     }
   }
 
   async ask(message_content) {
-    let ask_message = await this.msg(message_content, {
-      components: [
-        new Discord.MessageActionRow().addComponents(...this.ask_buttons),
-      ],
-      fetchReply: true,
-    });
+    try {
+      let ask_message = await this.msg(message_content, {
+        components: [
+          new Discord.MessageActionRow().addComponents(...this.ask_buttons),
+        ],
+        fetchReply: true,
+      });
 
-    let filter = (button) => button.user.id === this.interaction.member.id;
-    let await_ask = await ask_message
-      .awaitMessageComponent({ filter, max: 1, time: 60000, errors: ["time"] })
-      .catch((err) => undefined);
+      let filter = (button) => button.user.id === this.interaction.member.id;
+      let await_ask = await ask_message
+        .awaitMessageComponent({
+          filter,
+          max: 1,
+          time: 60000,
+          errors: ["time"],
+        })
+        .catch((err) => undefined);
 
-    await ask_message.delete();
-    return await_ask;
+      await ask_message.delete();
+      return await_ask;
+    } catch (err) {
+      f.handle_error(err, `/-команда ${this.options.slash.name}`);
+    }
   }
 }
 
