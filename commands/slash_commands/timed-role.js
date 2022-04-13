@@ -134,7 +134,7 @@ class Command extends Command_template {
           "При выполнении команды возникла ошибка. Обратитесь к loli_knight"
         );
 
-      this.msgH(
+      this.msg(
         `Вы успешно выдали роль ${this.interaction.guild.roles.cache.get(
           times[role_tag].id
         )} участнику ${member} на срок \`${f.time(time)}\``
