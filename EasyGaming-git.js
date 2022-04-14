@@ -126,6 +126,7 @@ class Bot_builder {
         if (!this.commands[folder_name]) this.commands[folder_name] = {};
 
         this.commands[folder_name][command.options?.slash.name] = Command;
+        
         this.slash.push(command.options?.slash);
       } catch (e) {
         console.log(`Ошибка в команде ${command_name}:`);
