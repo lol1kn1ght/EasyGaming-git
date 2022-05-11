@@ -69,9 +69,7 @@ class Command extends Command_template {
         ],
       });
 
-      if (this.interaction.replied)
-        this.interaction.editReply({ embeds: [embed], ephemeral: true });
-      else this.interaction.reply({ embeds: [embed], ephemeral: true });
+      this.interaction.editReply({ embeds: [embed], ephemeral: true });
     } catch (error) {
       f.handle_error(`/-команда ${this.interaction.commandName}`, error);
     }
