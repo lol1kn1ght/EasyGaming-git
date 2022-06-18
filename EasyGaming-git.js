@@ -126,8 +126,13 @@ class Bot_builder {
         if (!this.commands[folder_name]) this.commands[folder_name] = {};
 
         this.commands[folder_name][command.options?.slash.name] = Command;
-        
+
         this.slash.push(command.options?.slash);
+        delete require.cache[
+          require.resolve(
+            `./commands/${command_file.command_folder}/${command_file.command_name}`
+          )
+        ];
       } catch (e) {
         console.log(`Ошибка в команде ${command_name}:`);
         console.log(e);
@@ -169,6 +174,7 @@ class Bot_builder {
 
         this.bot.on(event_name, event.bind(null, args));
         this.events.push(event);
+        delete require.cache[require.resolve(`./events/${event_file}`)];
       } catch (e) {
         console.log(`Ошибка в евенте ${event_name}:`);
         console.log(e);

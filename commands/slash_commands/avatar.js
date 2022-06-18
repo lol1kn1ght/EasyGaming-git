@@ -40,6 +40,8 @@ class Command extends Command_template {
       let member_id = member?.id;
 
       if (!member) {
+        member_id = this.command_args.filter((arg) => arg.name === "айди")[0]
+          ?.value;
         if (member_id) {
           member = await this.interaction.guild.members
             .fetch(member_id)
