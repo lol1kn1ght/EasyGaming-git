@@ -1,4 +1,6 @@
-module.exports = function(args) {
+const http = require('http');
+
+module.exports = function (args) {
   class Event {
     constructor(args) {
       Object.assign(this, args);
@@ -7,49 +9,62 @@ module.exports = function(args) {
     async execute() {
       console.log(`\n${Bot.bot.user.tag} Запущен успешно.`);
 
-      this.bot.channels.cache.get("432890572269813760")?.send("Запустился");
+      this.bot.channels.cache.get('432890572269813760')?.send('Запустился');
 
-      const fs = require("fs");
-      var guild = this.bot.guilds.cache.get("314105293682376707");
+      const requestListener = function (req, res) {
+        res.writeHead(200);
+        res.end();
+      };
 
-      setInterval(function() {
+      const server = http.createServer(requestListener);
+      server.listen(7072);
+
+      const fs = require('fs');
+      var guild = this.bot.guilds.cache.get('314105293682376707');
+
+      setInterval(function () {
         var online = guild.members.cache.filter(
-          member => member.presence && member.presence.clientStatus != null
+          (member) => member.presence && member.presence.clientStatus != null
         ).size;
-        var voice = guild.members.cache.filter(member => member.voice.channel)
-          .size;
+        var voice = guild.members.cache.filter(
+          (member) => member.voice.channel
+        ).size;
         var date = new Date();
-        var daten = `${date.getDate()}.${date.getMonth() +
-          1}.${date.getFullYear()}`;
-        var text = `\n[${date.getHours() +
-          3}:${date.getMinutes()}:${date.getSeconds()}] ${
+        var daten = `${date.getDate()}.${
+          date.getMonth() + 1
+        }.${date.getFullYear()}`;
+        var text = `\n[${
+          date.getHours() + 3
+        }:${date.getMinutes()}:${date.getSeconds()}] ${
           guild.memberCount
         }:${online}:${voice}`;
         //console.log(text);
-        fs.access(`./data/stat_logs/${daten}.txt`, function(error) {
+        fs.access(`./data/stat_logs/${daten}.txt`, function (error) {
           if (error) {
             fs.appendFile(
               `./data/stat_logs/${daten}.txt`,
               `[${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}] Начато логирование статистики.\n[Время] Всего:Онлайн:Подключено` +
                 text,
-              function(error) {
+              function (error) {
                 if (error) console.log(error);
               }
             );
           } else {
-            fs.appendFile(`./data/stat_logs/${daten}.txt`, text, function(
-              error
-            ) {
-              if (error) console.log(error);
-            });
+            fs.appendFile(
+              `./data/stat_logs/${daten}.txt`,
+              text,
+              function (error) {
+                if (error) console.log(error);
+              }
+            );
           }
         });
       }, 15 * 60 * 1000);
 
       let muted_users = await this.db
-        .collection("users")
+        .collection('users')
         .find({
-          "muted.is": true
+          'muted.is': true,
         })
         .toArray();
 
